@@ -16,7 +16,7 @@ concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_p
         "album",
         "film",
         "written work"
-    ], "Duyacquy/Single-label-medical-abstract": ["1", "2", "3", "4", "5"], "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accsessories"], "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"]} # Done
+    ], "Duyacquy/Single-label-medical-abstract": ["1", "2", "3", "4", "5"], "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accessories"], "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"]} # Done
 
 class_num = {'SetFit/sst2': 2, "fancyzhx/ag_news": 4, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 14, "Duyacquy/Single-label-medical-abstract": 5, "Duyacquy/Legal-text": 5, "Duyacquy/Ecommerce-text": 4, "Duyacquy/Stack-overflow-question": 3} # Done
 
