@@ -63,13 +63,13 @@ def get_labels(n, d):
         return agnews_labels(n)
     if d == 'fancyzhx/dbpedia_14':
         return dbpedia_labels(n)
-    if d == "TimSchopf/medical_abstracts":
+    if d == "Duyacquy/Single-label-medical-abstract":
         return med_abs_labels(n)
-    if d == "darklord1611/legal_citations":
+    if d == "Duyacquy/Legal-text":
         return legal_labels(n)
-    if d == "darklord1611/ecom_categories":
+    if d == "Duyacquy/Ecommerce-text":
         return ecom_labels(n)
-    if d == "darklord1611/stackoverflow_question_ratings":
+    if d == "Duyacquy/Stack-overflow-question":
         return stack_over_flow_labels(n)
 
     raise(ValueError)

@@ -98,7 +98,12 @@ if __name__ == "__main__":
         raise Exception("backbone should be roberta or gpt2")
 
     print("start testing...")
-    metric = evaluate.load("accuracy")
+
+    accuracy_metric = evaluate.load("accuracy")
+    precision_metric = evaluate.load("precision")
+    recall_metric = evaluate.load("recall")
+    f1_metric = evaluate.load("f1")
+
     for i, batch in enumerate(test_loader):
         batch = {k: v.to(device) for k, v in batch.items()}
         with torch.no_grad():
@@ -114,6 +119,15 @@ if __name__ == "__main__":
             else:
                 p = LM(batch)
         pred = torch.argmax(p, dim=-1)
-        metric.add_batch(predictions=pred, references=batch["label"])
 
-    print(metric.compute())
+        accuracy_metric.add_batch(predictions=pred, references=batch["label"])
+        precision_metric.add_batch(predictions=pred, references=batch["label"])
+        recall_metric.add_batch(predictions=pred, references=batch["label"])
+        f1_metric.add_batch(predictions=pred, references=batch["label"])
+
+    print(accuracy_metric.compute())
+    print(precision_metric.compute())
+    print(recall_metric.compute())
+    print(f1_metric.compute())
+
+    

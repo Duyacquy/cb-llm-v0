@@ -87,7 +87,13 @@ if __name__ == "__main__":
     cbl.eval()
 
     print("eval concepts...")
-    metric = evaluate.load("accuracy")
+    # metric = evaluate.load("accuracy")
+
+    accuracy_metric = evaluate.load("accuracy")
+    precision_metric = evaluate.load("precision")
+    recall_metric = evaluate.load("recall")
+    f1_metric = evaluate.load("f1")
+
     concept_predictions = []
     for batch in test_loader:
         batch = {k: v.to(device) for k, v in batch.items()}
@@ -97,5 +103,16 @@ if __name__ == "__main__":
         concept_predictions.append(eos_pooling(concepts, batch["attention_mask"]))
     concept_predictions = torch.cat(concept_predictions, dim=0).detach().cpu()
     pred = np.argmax(concept_predictions.numpy(), axis=-1)
-    metric.add_batch(predictions=pred, references=encoded_test_dataset["label"])
-    print(metric.compute())
+
+    # metric.add_batch(predictions=pred, references=encoded_test_dataset["label"])
+
+    accuracy_metric.add_batch(predictions=pred, references=batch["label"])
+    precision_metric.add_batch(predictions=pred, references=batch["label"])
+    recall_metric.add_batch(predictions=pred, references=batch["label"])
+    f1_metric.add_batch(predictions=pred, references=batch["label"])
+
+    # print(metric.compute())
+    print(accuracy_metric.compute())
+    print(precision_metric.compute())
+    print(recall_metric.compute())
+    print(f1_metric.compute())

@@ -1,6 +1,6 @@
 import concepts
 
-example_name = {'SetFit/sst2': 'text', "fancyzhx/ag_news": 'text', "fancyzhx/yelp_polarity": 'text', "fancyzhx/dbpedia_14": 'content', "TimSchopf/medical_abstracts": 'medical_abstract', "darklord1611/legal_citations": 'case_text', "darklord1611/ecom_categories": 'text'} # Done
+example_name = {'SetFit/sst2': 'text', "fancyzhx/ag_news": 'text', "fancyzhx/yelp_polarity": 'text', "fancyzhx/dbpedia_14": 'content', "Duyacquy/Single-label-medical-abstract": 'medical_abstract', "Duyacquy/Legal-text": 'case_text', "Duyacquy/Ecommerce-text": 'text'} # Done
 concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_polarity": ["negative","positive"], "fancyzhx/ag_news": ["World", "Sports", "Business", "Sci/Tech"], "fancyzhx/dbpedia_14": [
         "company",
         "educational institution",
@@ -16,22 +16,48 @@ concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_p
         "album",
         "film",
         "written work"
-    ], "TimSchopf/medical_abstracts": ["neoplasms", "digestive_system_diseases", "nervous_system_diseases", "cardiovascular_diseases", "general_pathological_diseases"], "darklord1611/legal_citations": ["affirmed", "applied", "approved", "cited", "considered", "discussed", "distinguished", "followed", "referred to", "related"], "darklord1611/ecom_categories": ["Household", "Books", "Electronics", "Clothing & Accsessories"], "darklord1611/stackoverflow_question_ratings": ["HQ", "LQ_EDIT", "LQ_CLOSE"]} # Done
+    ], "Duyacquy/Single-label-medical-abstract": ["1", "2", "3", "4", "5"], "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accsessories"], "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"]} # Done
 
-class_num = {'SetFit/sst2': 2, "fancyzhx/ag_news": 4, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 14, "TimSchopf/medical_abstracts": 5, "darklord1611/legal_citations": 10, "darklord1611/ecom_categories": 4, "darklord1611/stackoverflow_question_ratings": 3} # Done
+class_num = {'SetFit/sst2': 2, "fancyzhx/ag_news": 4, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 14, "Duyacquy/Single-label-medical-abstract": 5, "Duyacquy/Legal-text": 5, "Duyacquy/Ecommerce-text": 4, "Duyacquy/Stack-overflow-question": 3} # Done
 
 # Config for Roberta-Base baseline
 finetune_epoch = {'SetFit/sst2': 3, "fancyzhx/ag_news": 2, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 2}
 finetune_mlp_epoch = {'SetFit/sst2': 30, "fancyzhx/ag_news": 5, "fancyzhx/yelp_polarity": 3, "fancyzhx/dbpedia_14": 3}
 
 # Config for CBM training
-concept_set = {'SetFit/sst2': concepts.sst2, "fancyzhx/yelp_polarity": concepts.yelpp, "fancyzhx/ag_news": concepts.agnews, "fancyzhx/dbpedia_14": concepts.dbpedia, "TimSchopf/medical_abstracts": concepts.med_abs, "darklord1611/legal_citations": concepts.legal, "darklord1611/ecom_categories": concepts.ecom, "darklord1611/stackoverflow_question_ratings": concepts.stackoverflow}
+concept_set = {'SetFit/sst2': concepts.sst2, "fancyzhx/yelp_polarity": concepts.yelpp, "fancyzhx/ag_news": concepts.agnews, "fancyzhx/dbpedia_14": concepts.dbpedia, "Duyacquy/Single-label-medical-abstract": concepts.med_abs, "Duyacquy/Legal-text": concepts.legal, "Duyacquy/Ecommerce-text": concepts.ecom, "Duyacquy/Stack-overflow-question": concepts.stackoverflow}
 
 
-cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10, "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10, "TimSchopf/medical_abstracts": 10, "darklord1611/legal_citations": 10, "darklord1611/ecom_categories": 10, "darklord1611/stackoverflow_question_ratings": 10}
+cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10, "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10, "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10, "": 10, "Duyacquy/Stack-overflow-question": 10}
+
+#Duyacquy/Single-label-medical-abstract
+#TimSchopf/medical_abstracts
+# ok
+
+#Duyacquy/Pubmed-20k
+#pietrolesci/pubmed-200k-rct
+# abstract_text, target
+# ok
+
+#Duyacquy/Ecommerce-text
+#darklord1611/ecom_categories
+# ok
+
+
+#Duyacquy/UCI-drug
+#dd-n-kk/uci-drug-review-cleaned
+# review, rating
+#ok
+
+
+#Duyacquy/Legal-text
+#darklord1611/legal_citations
+
+#Duyacquy/Stack-overflow-question
+#darklord1611/stackoverflow_question_ratings
 
 dataset_config = {
-    "TimSchopf/medical_abstracts": {
+    "Duyacquy/Single-label-medical-abstract": {
         "text_column": "medical_abstract",
         "label_column": "condition_label"
     },
@@ -59,24 +85,24 @@ dataset_config = {
         "text_column": "text",
         "label_column": "label"
     },
-    "pietrolesci/pubmed-200k-rct": {
-        "text_column": "text",
-        "label_column": "labels"
+    "Duyacquy/Pubmed-20k": {
+        "text_column": "abstract_text",
+        "label_column": "target"
     },
-    "dd-n-kk/uci-drug-review-cleaned": {
+    "Duyacquy/UCI-drug": {
         "text_column": "review",
         "label_column": "rating"
     },
-    "darklord1611/legal_citations": {
+    "Duyacquy/Legal-text": {
         "text_column": "case_text",
         "label_column": "case_outcome"
     },
-    "darklord1611/ecom_categories": {
+    "Duyacquy/Ecommerce-text": {
         "text_column": "text",
         "label_column": "label"
     },
-    "darklord1611/stackoverflow_question_ratings": {
-        "text_column": "Body",
+    "Duyacquy/Stack-overflow-question": {
+        "text_column": "Text",
         "label_column": "Y"
     }
 }

@@ -162,8 +162,27 @@ if __name__ == "__main__":
     W_g = torch.load(W_g_path)
     b_g = torch.load(b_g_path)
     final.load_state_dict({"weight": W_g, "bias": b_g})
-    metric = evaluate.load("accuracy")
+
+    # metric = evaluate.load("accuracy")
+    
+    accuracy_metric = evaluate.load("accuracy")
+    precision_metric = evaluate.load("precision")
+    recall_metric = evaluate.load("recall")
+    f1_metric = evaluate.load("f1")
+    
     with torch.no_grad():
         pred = np.argmax(final(test_c).detach().numpy(), axis=-1)
-    metric.add_batch(predictions=pred, references=encoded_test_dataset["label"])
-    print(metric.compute())
+    
+    # metric.add_batch(predictions=pred, references=encoded_test_dataset["label"])
+
+    accuracy_metric.add_batch(predictions=pred, references=batch["label"])
+    precision_metric.add_batch(predictions=pred, references=batch["label"])
+    recall_metric.add_batch(predictions=pred, references=batch["label"])
+    f1_metric.add_batch(predictions=pred, references=batch["label"])
+
+    # print(metric.compute())
+    
+    print(accuracy_metric.compute())
+    print(precision_metric.compute())
+    print(recall_metric.compute())
+    print(f1_metric.compute())
