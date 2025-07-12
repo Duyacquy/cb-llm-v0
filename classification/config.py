@@ -1,6 +1,14 @@
 import concepts
 
-example_name = {'SetFit/sst2': 'text', "fancyzhx/ag_news": 'text', "fancyzhx/yelp_polarity": 'text', "fancyzhx/dbpedia_14": 'content', "Duyacquy/Single-label-medical-abstract": 'medical_abstract', "Duyacquy/Legal-text": 'case_text', "Duyacquy/Ecommerce-text": 'text'} # Done
+example_name = {'SetFit/sst2': 'text', 
+                "fancyzhx/ag_news": 'text', 
+                "fancyzhx/yelp_polarity": 'text', 
+                "fancyzhx/dbpedia_14": 'content', 
+                "Duyacquy/Single-label-medical-abstract": 'medical_abstract', 
+                "Duyacquy/Legal-text": 'case_text', 
+                "Duyacquy/Ecommerce-text": 'text',
+                "Duyacquy/Pubmed-20k": 'abstract_text',
+                "Duyacquy/UCI-drug": 'review'} # Done
 concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_polarity": ["negative","positive"], "fancyzhx/ag_news": ["World", "Sports", "Business", "Sci/Tech"], "fancyzhx/dbpedia_14": [
         "company",
         "educational institution",
@@ -16,9 +24,20 @@ concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_p
         "album",
         "film",
         "written work"
-    ], "Duyacquy/Single-label-medical-abstract": ["1", "2", "3", "4", "5"], "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accessories"], "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"]} # Done
+    ], 
+    "Duyacquy/Single-label-medical-abstract": ["1", "2", "3", "4", "5"], 
+    "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], 
+    "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accessories"], 
+    "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"],
+    "Duyacquy/Pubmed-20k": ["CONCLUSION", "BACKGROUND", "METHODS", "RESULTS", "OBJECTIVE"],
+    "Duyacquy/UCI-drug": ["1", "5", "10"]
+} # Done
 
-class_num = {'SetFit/sst2': 2, "fancyzhx/ag_news": 4, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 14, "Duyacquy/Single-label-medical-abstract": 5, "Duyacquy/Legal-text": 5, "Duyacquy/Ecommerce-text": 4, "Duyacquy/Stack-overflow-question": 3} # Done
+class_num = {'SetFit/sst2': 2, "fancyzhx/ag_news": 4, 
+             "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 14, 
+             "Duyacquy/Single-label-medical-abstract": 5, "Duyacquy/Legal-text": 5, 
+             "Duyacquy/Ecommerce-text": 4, "Duyacquy/Stack-overflow-question": 3,
+             "Duyacquy/Pubmed-20k": 5, "Duyacquy/UCI-drug": 3} # Done
 
 # Config for Roberta-Base baseline
 finetune_epoch = {'SetFit/sst2': 3, "fancyzhx/ag_news": 2, "fancyzhx/yelp_polarity": 2, "fancyzhx/dbpedia_14": 2}
@@ -27,8 +46,11 @@ finetune_mlp_epoch = {'SetFit/sst2': 30, "fancyzhx/ag_news": 5, "fancyzhx/yelp_p
 # Config for CBM training
 concept_set = {'SetFit/sst2': concepts.sst2, "fancyzhx/yelp_polarity": concepts.yelpp, "fancyzhx/ag_news": concepts.agnews, "fancyzhx/dbpedia_14": concepts.dbpedia, "Duyacquy/Single-label-medical-abstract": concepts.med_abs, "Duyacquy/Legal-text": concepts.legal, "Duyacquy/Ecommerce-text": concepts.ecom, "Duyacquy/Stack-overflow-question": concepts.stackoverflow}
 
-
-cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10, "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10, "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10, "Duyacquy/Ecommerce-text": 10, "Duyacquy/Stack-overflow-question": 10}
+cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10,
+              "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10,
+              "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10,
+              "Duyacquy/Ecommerce-text": 10, "Duyacquy/Stack-overflow-question": 10,
+              "Duyacquy/Pubmed-20k": 10, "Duyacquy/UCI-drug": 10} # Done
 
 #Duyacquy/Single-label-medical-abstract
 #TimSchopf/medical_abstracts
