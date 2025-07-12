@@ -29,7 +29,7 @@ concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_p
     "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], 
     "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accessories"], 
     "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"],
-    "Duyacquy/Pubmed-20k": ["CONCLUSION", "BACKGROUND", "METHODS", "RESULTS", "OBJECTIVE"],
+    "Duyacquy/Pubmed-20k": ["CONCLUSIONS", "BACKGROUND", "METHODS", "RESULTS", "OBJECTIVE"],
     "Duyacquy/UCI-drug": ["1", "5", "10"]
 } # Done
 
