@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from utils import normalize, eos_pooling
 from dataset_utils import train_val_test_split, preprocess
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 parser = argparse.ArgumentParser()
 
@@ -261,4 +262,23 @@ if __name__ == "__main__":
     torch.save(b_g, prefix + 'b_g' + model_name)
     torch.save(W_g_sparse, prefix + 'W_g_sparse' + model_name)
     torch.save(b_g_sparse, prefix + 'b_g_sparse' + model_name)
+
+    # Tính các chỉ số với sparse weights
+    with torch.no_grad():
+        logits = torch.matmul(test_c, W_g_sparse.T) + b_g_sparse  # Dự đoán
+        preds = logits.argmax(dim=1)
+
+    # Tính toán các chỉ số
+    acc = accuracy_score(test_y.numpy(), preds.numpy())
+    precision = precision_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
+    recall = recall_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
+    f1 = f1_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
+
+    # In kết quả
+    print("Sparse weight performance:")
+    print(f"Accuracy:  {acc:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall:    {recall:.4f}")
+    print(f"F1 Score:  {f1:.4f}")
+
 
