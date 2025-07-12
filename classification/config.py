@@ -28,7 +28,7 @@ finetune_mlp_epoch = {'SetFit/sst2': 30, "fancyzhx/ag_news": 5, "fancyzhx/yelp_p
 concept_set = {'SetFit/sst2': concepts.sst2, "fancyzhx/yelp_polarity": concepts.yelpp, "fancyzhx/ag_news": concepts.agnews, "fancyzhx/dbpedia_14": concepts.dbpedia, "Duyacquy/Single-label-medical-abstract": concepts.med_abs, "Duyacquy/Legal-text": concepts.legal, "Duyacquy/Ecommerce-text": concepts.ecom, "Duyacquy/Stack-overflow-question": concepts.stackoverflow}
 
 
-cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10, "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10, "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10, "": 10, "Duyacquy/Stack-overflow-question": 10}
+cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10, "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10, "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10, "Duyacquy/Ecommerce-text": 10, "Duyacquy/Stack-overflow-question": 10}
 
 #Duyacquy/Single-label-medical-abstract
 #TimSchopf/medical_abstracts
