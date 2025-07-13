@@ -1,0 +1,150 @@
+Unexplained weight loss.
+Persistent fatigue.
+Chronic cough or hoarseness.
+Skin changes (e.g., new moles, changes in existing moles, jaundice).
+Difficulty swallowing (dysphagia).
+Persistent indigestion or heartburn.
+Unexplained bleeding or bruising.
+Headaches.
+Bone pain.
+Swollen lymph nodes (lymphadenopathy).
+Vision changes.
+Seizures.
+Weakness in limbs.
+Numbness or tingling.
+Loss of appetite.
+Nausea and vomiting.
+Abdominal pain.
+Changes in menstrual cycle (in women).
+Sores that don't heal.
+Easy bleeding or bruising.
+Fever of unknown origin.
+Ascites (abdominal swelling due to fluid).
+Pleural effusion (fluid around the lungs).
+Clubbing of the fingers or toes.
+Changes in voice.
+Unexplained anemia.
+Hypercalcemia (elevated calcium levels).
+Cushingoid features (due to ectopic hormone production).
+Neurological deficits (e.g., gait disturbance, cognitive changes).
+Recurrent infections.
+diarrhea
+constipation
+changes in bowel habits (frequency, consistency)
+blood in stool (bright red or dark, tarry)
+mucus in stool
+unexplained weight loss
+difficulty swallowing (dysphagia)
+painful swallowing (odynophagia)
+loss of appetite (anorexia)
+feeling of fullness after eating small amounts
+belching
+foul-smelling breath
+swelling of the abdomen (ascites)
+jaundice (yellowing of the skin and eyes)
+pale stools
+dark urine
+fatigue
+weakness
+fever
+chills
+dehydration
+skin rashes
+itching
+joint pain
+mouth sores
+abdominal distension
+rectal bleeding
+urgency to have a bowel movement
+tenesmus (feeling of incomplete bowel emptying)
+history of acid reflux
+Changes in gait or balance problems.
+Difficulty with coordination or clumsiness.
+Speech difficulties (slurred speech, difficulty finding words).
+Memory problems or cognitive decline.
+Changes in sleep patterns (insomnia, excessive sleepiness).
+Seizures or convulsions.
+Tremors or involuntary movements.
+Stiffness or rigidity in muscles.
+Dizziness or vertigo.
+Numbness or altered sensation in the face.
+Changes in bowel or bladder control.
+Difficulty swallowing (dysphagia).
+Unexplained fatigue or exhaustion.
+Changes in personality or behavior.
+Difficulty with concentration or focus.
+Headaches accompanied by nausea or vomiting.
+Sensitivity to light (photophobia) or sound (phonophobia).
+Changes in taste or smell.
+Muscle spasms or cramps.
+Burning pain or other unusual sensations.
+Restlessness or agitation.
+Slowed reflexes.
+Increased or decreased sweating.
+Visual hallucinations.
+Auditory hallucinations.
+Difficulty with fine motor skills (e.g., writing, buttoning clothes).
+Facial droop or asymmetry.
+Difficulty with emotional regulation.
+Unexplained weight loss or gain.
+Difficulty with problem-solving or executive function.
+Chest pain (angina)
+Irregular heartbeat (arrhythmia)
+Fatigue
+Dizziness or lightheadedness
+Swelling in ankles, feet, or legs (edema)
+Palpitations (feeling of a racing heart)
+Coughing, especially at night or when lying down
+Bluish discoloration of the skin (cyanosis)
+Cool or pale skin
+Sweating, especially with exertion
+Numbness or weakness in arms or legs
+Rapid heart rate (tachycardia)
+Slow heart rate (bradycardia)
+High blood pressure (hypertension)
+Low blood pressure (hypotension)
+Elevated cholesterol levels
+Family history of heart disease
+History of smoking
+Diabetes
+Obesity
+Poor circulation in the extremities
+Changes in skin color of the legs (e.g., reddish-blue)
+Non-healing sores on the feet or legs
+Weak pulse in arms or legs
+Difficulty breathing when lying flat (orthopnea)
+Weight gain due to fluid retention
+Confusion or cognitive changes
+Unexplained anxiety
+Jaw pain
+Back pain
+Fatigue and weakness.
+Loss of appetite (anorexia).
+Unexplained weight loss.
+Swelling (edema) in various body parts.
+Skin rashes or changes in skin color.
+Pain in various body parts.
+Headache.
+Nausea and vomiting.
+Diarrhea or constipation.
+Changes in urination frequency or color.
+Dizziness or lightheadedness.
+Altered mental status (confusion, disorientation).
+Shortness of breath (dyspnea).
+Coughing (with or without mucus).
+Chest pain.
+Abdominal pain or discomfort.
+Joint pain (arthralgia).
+Muscle aches (myalgia).
+Changes in vision.
+Difficulty sleeping (insomnia).
+Easy bruising.
+Slow wound healing.
+Swollen lymph nodes.
+Night sweats.
+Changes in bowel habits.
+Unexplained bleeding or bruising.
+Pallor (pale skin).
+Cyanosis (bluish discoloration of the skin).
+Jaundice (yellowing of the skin and eyes).
+Presence of specific pathogens (e.g., bacteria, viruses).
