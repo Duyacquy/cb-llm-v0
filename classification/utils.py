@@ -65,6 +65,10 @@ def get_labels(n, d):
         return dbpedia_labels(n)
     if d == "Duyacquy/Single-label-medical-abstract":
         return med_abs_labels(n)
+    if d == "Duyacquy/Pubmed-20k":
+        return pubmed_abs_labels(n)
+    if d == "Duyacquy/UCI-drug":
+        return drug_abs_labels(n)
     if d == "Duyacquy/Legal-text":
         return legal_labels(n)
     if d == "Duyacquy/Ecommerce-text":
@@ -154,6 +158,20 @@ def ecom_labels(n):
 
 def stack_over_flow_labels(n):
     boundaries = [20, 40, 60]
+    for i, bound in enumerate(boundaries):
+        if n < bound:
+            return i
+    return len(boundaries)
+
+def pubmed_abs_labels(n):
+    boundaries = [30, 60, 90, 120, 150]
+    for i, bound in enumerate(boundaries):
+        if n < bound:
+            return i
+    return len(boundaries)
+
+def drug_abs_labels(n):
+    boundaries = [30, 60, 90]
     for i, bound in enumerate(boundaries):
         if n < bound:
             return i

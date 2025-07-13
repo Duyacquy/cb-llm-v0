@@ -29,7 +29,7 @@ concepts_from_labels = {'SetFit/sst2': ["negative","positive"], "fancyzhx/yelp_p
     "Duyacquy/Legal-text": ["applied", "cited", "considered", "followed", "referred to"], 
     "Duyacquy/Ecommerce-text": ["Household", "Books", "Electronics", "Clothing & Accessories"], 
     "Duyacquy/Stack-overflow-question": ["HQ", "LQ_EDIT", "LQ_CLOSE"],
-    "Duyacquy/Pubmed-20k": ["CONCLUSION", "BACKGROUND", "METHODS", "RESULTS", "OBJECTIVE"],
+    "Duyacquy/Pubmed-20k": ["BACKGROUND", "OBJECTIVE", "METHODS", "RESULTS", "CONCLUSIONS"],
     "Duyacquy/UCI-drug": ["1", "5", "10"]
 } # Done
 
@@ -54,7 +54,6 @@ concept_set = {'SetFit/sst2': concepts.sst2,
                "Duyacquy/Stack-overflow-question": concepts.stackoverflow,
                "Duyacquy/Pubmed-20k": concepts.pubmed,
                "Duyacquy/UCI-drug": concepts.drug} # Done
-
 cbl_epochs = {'SetFit/sst2': 10, "fancyzhx/ag_news": 10,
               "fancyzhx/yelp_polarity": 10, "fancyzhx/dbpedia_14": 10,
               "Duyacquy/Single-label-medical-abstract": 10, "Duyacquy/Legal-text": 10,
