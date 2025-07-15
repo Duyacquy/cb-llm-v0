@@ -72,14 +72,19 @@ def preprocess_label_column(dataset, dataset_name, label_column):
         dataset = dataset.cast(new_features)
         return dataset
 
+    def reindex_labels(dataset, label_column):
+        unique_labels = sorted(set(dataset[label_column]))
+        label2id = {label: idx for idx, label in enumerate(unique_labels)}
+        print("Label mapping:", label2id)
+        return dataset.map(lambda e: {label_column: [label2id[l] for l in e[label_column]]}, batched=True)
+
     if dataset_name == "Duyacquy/Single-label-medical-abstract":
         dataset = dataset.map(reformat_label, batched=True)
 
-    elif dataset_name == "Duyacquy/UCI-drug":
-        # convert the rating to integers
+    if dataset_name == "Duyacquy/UCI-drug":
         dataset = cast_type(dataset, label_column, "int32")
-        dataset = dataset.map(reformat_label, batched=True)
-    
+        dataset = reindex_labels(dataset, label_column)
+
     return dataset
 
 
