@@ -270,9 +270,9 @@ if __name__ == "__main__":
 
     # Tính toán các chỉ số
     acc = accuracy_score(test_y.numpy(), preds.numpy())
-    precision = precision_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
-    recall = recall_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
-    f1 = f1_score(test_y.numpy(), preds.numpy(), average='weighted', zero_division=0)
+    precision = precision_score(test_y.numpy(), preds.numpy(), average='macro', zero_division=0)
+    recall = recall_score(test_y.numpy(), preds.numpy(), average='macro', zero_division=0)
+    f1 = f1_score(test_y.numpy(), preds.numpy(), average='macro', zero_division=0)
 
     # In kết quả
     print("Sparse weight performance:")
