@@ -115,14 +115,6 @@ dataset_config = {
         "text_column": "text",
         "label_column": "label"
     },
-    "Duyacquy/Pubmed-20k": {
-        "text_column": "abstract_text",
-        "label_column": "target"
-    },
-    "Duyacquy/UCI-drug": {
-        "text_column": "review",
-        "label_column": "rating"
-    },
     "Duyacquy/Legal-text": {
         "text_column": "case_text",
         "label_column": "case_outcome"
@@ -134,5 +126,13 @@ dataset_config = {
     "Duyacquy/Stack-overflow-question": {
         "text_column": "Text",
         "label_column": "Y"
-    }
+    },
+    "Duyacquy/Pubmed-20k": {
+        "text_column": "abstract_text",
+        "label_column": "target"
+    },
+    "Duyacquy/UCI-drug": {
+        "text_column": "review",
+        "label_column": "rating"
+    },
 }
