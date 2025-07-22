@@ -652,16 +652,11 @@ class LegalPrompt(BaseModel):
         default="You are an expert Legal Specialist, your job is to identify some key features that will distinguish a specific relationship or action taken by a court regarding a prior legal authority")
     labels_to_prompts: dict[str, str] = Field(
         default={
-            "affirmed": legal_prompt_1,
             "applied": legal_prompt_2,
-            "approved": legal_prompt_3,
             "cited": legal_prompt_4,
             "considered": legal_prompt_5,
-            "discussed": legal_prompt_6,
-            "distinguished": legal_prompt_7,
             "followed": legal_prompt_8,
             "referred to": legal_prompt_9,
-            "related": legal_prompt_10,
         }
     )
 
@@ -691,7 +686,7 @@ class StackOverflowPrompt(BaseModel):
 
 def configure_llm():
     """Cấu hình API của Google Generative AI bằng cách sử dụng key được đặt trực tiếp trong code."""
-    API_KEY = "AIzaSyCItfzA_PvQV4YkOck-RsP6fmtxTJBhxAE" 
+    API_KEY = "AIzaSyCVaodTjz3OoA26EkQqJjILu69KJdpfXB8" 
 
     if not API_KEY or API_KEY == "YOUR_API_KEY_HERE":
         raise ValueError(
@@ -756,14 +751,14 @@ import json
 
 def main():
     """Hàm chính điều phối toàn bộ quá trình."""
-    output_directory = r"C:\Users\thaol\Downloads\test"
+    output_directory = r"D:\Lap\iSE\cb-llm-v0\concept_gen"
     # Thay đổi tên tệp đầu ra thành .js on
-    output_filename = "generated_drug_features.json"
+    output_filename = "generated_legal_features.json"
     full_output_path = os.path.join(output_directory, output_filename)
     
     try:
         configure_llm()
-        prompt_data = DrugReviewPrompt()
+        prompt_data = LegalPrompt()
         
         # Lưu ý: 'gemini-2.0-flash-lite' không phải là một model hợp lệ tại thời điểm này.
         # Sử dụng 'gemini-1.5-flash-latest' là lựa chọn nhanh và hiệu quả.
@@ -771,7 +766,7 @@ def main():
 
         all_generated_features = []
 
-        print("\nBắt đầu quá trình tạo các đặc điểm y tế...")
+        print("\nBắt đầu quá trình tạo các đặc điểm luật pháp...")
         print("-" * 50)
 
         for label, user_prompt in prompt_data.labels_to_prompts.items():
