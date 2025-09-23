@@ -753,12 +753,12 @@ def main():
     """Hàm chính điều phối toàn bộ quá trình."""
     output_directory = r"D:\Lap\iSE\cb-llm-v0\concept_gen"
     # Thay đổi tên tệp đầu ra thành .js on
-    output_filename = "generated_legal_features.json"
+    output_filename = "generated_pubmed_features.json"
     full_output_path = os.path.join(output_directory, output_filename)
     
     try:
         configure_llm()
-        prompt_data = LegalPrompt()
+        prompt_data = PubmedPrompt()
         
         # Lưu ý: 'gemini-2.0-flash-lite' không phải là một model hợp lệ tại thời điểm này.
         # Sử dụng 'gemini-1.5-flash-latest' là lựa chọn nhanh và hiệu quả.
@@ -766,7 +766,7 @@ def main():
 
         all_generated_features = []
 
-        print("\nBắt đầu quá trình tạo các đặc điểm luật pháp...")
+        print("\nBắt đầu quá trình tạo các đặc điểm stackoverflow...")
         print("-" * 50)
 
         for label, user_prompt in prompt_data.labels_to_prompts.items():
