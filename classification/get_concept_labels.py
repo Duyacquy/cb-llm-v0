@@ -50,8 +50,25 @@ def build_sim_loaders(encode_sim):
 print("loading data...")
 train_dataset, val_dataset, test_dataset = train_val_test_split(args.dataset, CFG.dataset_config[args.dataset]["label_column"], ratio=0.2, has_val=False)
 
+print("Ví dụ đầu tiên trong train_dataset:")
+print(train_dataset[0])
+
 concept_set = CFG.concept_set[args.dataset]
 print("concept len: ", len(concept_set))
+
+# --- IN RA CONCEPTS ---
+PRINT_N = 30   # đổi thành None để in hết
+
+total = len(concept_set)
+print(f"[INFO] Tổng số concepts: {total}")
+
+if PRINT_N is None:
+    to_show = concept_set
+else:
+    to_show = concept_set[:min(PRINT_N, total)]
+
+for i, c in enumerate(to_show):
+    print(f"{i:3d}: {c}")
 
 if args.concept_text_sim_model == 'mpnet':
     print("tokenizing and preparing mpnet")
