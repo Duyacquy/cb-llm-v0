@@ -499,22 +499,23 @@ stackoverflow = ['The title is concise, descriptive, and accurately reflects the
  'Reads like a "shopping list" of desired features without a specific technical question about implementation.'] #60
 
 pubmed = [
-    "skyfall#77", "dustyRoad!22", "midnight_owl", "valleyX9", "orangeTree%88",
-    "whiteCloud@12", "hiddenPath$33", "firefly_99", "sweetHoney**7", "crescentMoon~56",
-    "railway_44", "sandGrain#19", "fullMoonGate$", "oceanWave@8", "purpleSmoke^23",
-    "peachBranch~92", "^%^%^^%", "bambooShoot$05", "icedTea&66", "lanternLight_abc",
-    "filmReel%17", "pencilNote_59", "guitarSong#4", "secretCode$27", "nanananaanhdomixi",
-    "oldBook_88", "mapleLeaf~51", "yetsorrrrr", "kakaka", "springSun_45",
-    "kisshit", "hêhe", "smokeTrail#07", "pebbleStone$21", "waterfallView^55",
-    "harpSong!60", "lotusLake_13", "salmonFish@96", "nightDrop$99", "skyField_abc",
-    "nightMarket!31", "roosterCall_22", "sunriseGlow#54", "steamedBun@14", "sugarCane^63",
-    "goldenFlute~88", "jadeRing$20", "violinTune_09", "summerGold@73", "flyingFlag!46",
-    "&&**", "*&^^", "###@", "!!!!", "@@!$",
-    "$$&&", "((!!", "**##", "++@@", "//$$",
-    "~~))", "--++", "!!##", "@@^^", "$$!!",
-    "**&&", "++--", "!!^^", "@@!!", "*&##",
-    "^^**", "--@@", "++$$", "!!&&", "##!!"
+    "xqz!!88", "rrt9@#", "blop_kzz", "vnnmm//1", "ooop###",
+    "kkll@!22", "hzzzp$5", "ff9_yy", "ttrr**11", "mno~pp",
+    "qwe_77", "zzz19#", "mmm$$$", "uuu@88", "ppp^23",
+    "yui~zz", "%#@*&!", "bnm$05", "itt&&66", "abc_xyz",
+    "rrr%17", "ppn_59", "ggg#4", "scd$27", "n9q8z__xx",
+    "obb_11", "mpl~51", "krr9xx", "qzzqzz", "ssp_45",
+    "qz9!t*", "pqpq~~", "smt#07", "pbst$21", "wtv^55",
+    "hps!60", "ltl_13", "smf@96", "ndp$99", "skf_abc",
+    "nmk!31", "rsc_22", "sgl#54", "smb@14", "scn^63",
+    "gfl~88", "jrn$20", "vtn_09", "sgd@73", "ffl!46",
+    "@*#&", "!^!^", "%$@!", "??!!", "~~@#",
+    "$@#%", ")(*&", "^%#@", "++=~", "///^",
+    "~}{~", "--=+", "!!<>", "@@^^", "$$123",
+    "**()", "+=-=", "!!^~", "@@!?", "*&@=",
+    "^_^!", "--**", "++hah", "!!$$", "#?#!"
 ]
+
 
 drug = [
     "The side effects were more debilitating than the original condition.",
