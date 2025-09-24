@@ -516,7 +516,6 @@ pubmed = [
     "^_^!", "--**", "++hah", "!!$$", "#?#!"
 ]
 
-
 drug = [
     "The side effects were more debilitating than the original condition.",
     "The drug caused new and unexpected health problems.",
