@@ -30,6 +30,6 @@ else
     echo "CBL model already exists at $cbl_model_path. Skipping train_CBL.py."
 fi
 
-# Continue with training final layer
+# Continue with training final layer 
 python train_FL.py --cbl_path="$cbl_model_path" --dataset="${1}" --backbone="${3}"
-python print_concept_contributions.py --cbl_path="$cbl_model_path" --dataset="${1}"
+python test_CBLLM.py --cbl_path="$cbl_model_path"
