@@ -17,30 +17,27 @@ parser = argparse.ArgumentParser()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 parser.add_argument("--cbl_path", type=str, default="mpnet_acs/SetFit_sst2/roberta_cbm/cbl.pt")
-parser.add_argument('--sparse', action=argparse.BooleanOptionalAction)
 parser.add_argument("--batch_size", type=int, default=256)
-
 parser.add_argument("--max_length", type=int, default=512)
 parser.add_argument("--num_workers", type=int, default=0)
 parser.add_argument("--dropout", type=float, default=0.1)
+parser.add_argument('--sparse', action=argparse.BooleanOptionalAction, help="Dùng W_g_sparse/b_g_sparse nếu bật")
 
-
+# ---------- Dataset wrapper dùng trực tiếp HF Dataset (đã set with_format) ----------
 class ClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, ds, columns):
         self.ds = ds
-        self.columns = columns  
+        self.columns = columns  # ví dụ: ['input_ids','attention_mask','label']
 
     def __getitem__(self, idx):
-        return {k: self.ds[k][idx] for k in self.columns} 
+        return {k: self.ds[k][idx] for k in self.columns}
 
     def __len__(self):
         return self.ds.num_rows
 
 
-def build_loaders(ds, mode):
-    cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", "label"]
-            if c in ds.column_names]
-    dataset = ClassificationDataset(ds, cols)
+def build_loader(ds, columns, mode):
+    dataset = ClassificationDataset(ds, columns)
     return torch.utils.data.DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -53,15 +50,25 @@ if __name__ == "__main__":
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args, _ = parser.parse_known_args()
 
+    # ---- Parse cbl_path ----
     cbl_path = args.cbl_path.strip()
-    acs = cbl_path.split("/")[0]
-    dataset_dir = cbl_path.split("/")[1] 
+    parts = cbl_path.split("/")
+    if len(parts) < 3:
+        raise ValueError(f"--cbl_path không hợp lệ: {cbl_path}")
+
+    acs = parts[0]              # mpnet_acs/simcse_acs/angle_acs
+    dataset_dir = parts[1]      # ví dụ: Duyacquy_Pubmed-20k
+    cbl_name = parts[-1]        # ví dụ: cbl_no_backbone_acc.pt
+    backbone_dir = parts[2]     # ví dụ: roberta_cbm hoặc bert hoặc gpt2_cbm...
+
+    # Phục hồi 'org/dataset' nếu bị '_' lần đầu
     if "/" not in dataset_dir and "_" in dataset_dir:
         org, rest = dataset_dir.split("_", 1)
-        dataset_hf = f"{org}/{rest}"    
+        dataset_hf = f"{org}/{rest}"
     else:
         dataset_hf = dataset_dir
-    # infer backbone from path
+
+    # Suy ra backbone từ đường dẫn
     lower_path = cbl_path.lower()
     if "roberta" in lower_path:
         backbone = "roberta"
@@ -70,20 +77,24 @@ if __name__ == "__main__":
     elif "bert" in lower_path:
         backbone = "bert"
     else:
-        seg = cbl_path.split("/")[2] if len(cbl_path.split("/")) > 2 else ""
-        sl = seg.lower()
-        if any(k in sl for k in ["roberta","gpt2","bert"]):
-            backbone = "roberta" if "roberta" in sl else ("gpt2" if "gpt2" in sl else "bert")
+        seg = parts[2].lower() if len(parts) > 2 else ""
+        if any(k in seg for k in ["roberta", "gpt2", "bert"]):
+            backbone = "roberta" if "roberta" in seg else ("gpt2" if "gpt2" in seg else "bert")
         else:
             raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
-        
-    cbl_name = cbl_path.split("/")[-1]
-    backbone_dir = cbl_path.split("/")[2]
 
     print("------------------------CONCEPT_CONTRIBUTED---------------------")
     print("loading data...")
     test_dataset = load_dataset(dataset_hf, split='test')
     print("test data len: ", len(test_dataset))
+
+    # Key text theo CFG
+    cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
+    if cfg_key not in CFG.example_name:
+        raise KeyError(f"Không tìm thấy text key cho '{cfg_key}' trong CFG.example_name")
+    text_key = CFG.example_name[cfg_key]
+
+    # Tokenizer
     print("tokenizing...")
     if backbone == 'roberta':
         tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
@@ -95,30 +106,52 @@ if __name__ == "__main__":
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
-    cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
-
+    # Tokenize 1 lần
     encoded_test_dataset = test_dataset.map(
-        lambda e: tokenizer(e[CFG.example_name[cfg_key]], padding=True, truncation=True,
-                            max_length=args.max_length), batched=True, batch_size=len(test_dataset))
-    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[cfg_key]])
-    if cfg_key == 'SetFit/sst2' or cfg_key == 'SetFit_sst2':
+        lambda e: tokenizer(e[text_key], padding=True, truncation=True, max_length=args.max_length),
+        batched=True, batch_size=len(test_dataset)
+    )
+    encoded_test_dataset = encoded_test_dataset.remove_columns([text_key])
+
+    # Bỏ cột thừa nếu có
+    if cfg_key in ('SetFit/sst2', 'SetFit_sst2') and 'label_text' in encoded_test_dataset.column_names:
         encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
-    if cfg_key == 'dbpedia_14':
+    if cfg_key == 'dbpedia_14' and 'title' in encoded_test_dataset.column_names:
         encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
 
-    # Giữ lại đúng các cột tensor cần thiết
-    keep_cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", "label"]
-                if c in encoded_test_dataset.column_names]
+    # ---- Lấy/giữ lại cột nhãn ----
+    raw_cols = set(test_dataset.column_names)
+    # PubMed dùng 'target'; nếu không có thì fallback
+    label_col = "target" if "target" in raw_cols else None
+    if label_col is None:
+        for cand in ["label", "labels", "class", "y"]:
+            if cand in raw_cols:
+                label_col = cand
+                break
+    if label_col is None:
+        raise ValueError(f"Không tìm thấy cột nhãn trong {test_dataset.column_names}")
+
+    # Lưu nhãn gốc để phòng bị remove
+    orig_labels = test_dataset[label_col]
+
+    # Giữ đúng cột cần thiết + khôi phục label nếu đã mất
+    keep_cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", label_col]
+                 if c in encoded_test_dataset.column_names]
     drop_cols = [c for c in encoded_test_dataset.column_names if c not in keep_cols]
     if drop_cols:
         encoded_test_dataset = encoded_test_dataset.remove_columns(drop_cols)
+    if label_col not in encoded_test_dataset.column_names:
+        encoded_test_dataset = encoded_test_dataset.add_column(label_col, orig_labels)
+        if label_col not in keep_cols:
+            keep_cols.append(label_col)
 
-    # Trả về tensor trực tiếp từ HF dataset
+    # Dataset trả tensor trực tiếp
     encoded_test_dataset = encoded_test_dataset.with_format(type="torch", columns=keep_cols)
 
     print("creating loader...")
-    test_loader = build_loaders(encoded_test_dataset, mode="test")
+    test_loader = build_loader(encoded_test_dataset, keep_cols, mode="test")
 
+    # ---- Chuẩn bị mô hình ----
     concept_set = CFG.concept_set[cfg_key]
     if backbone == 'roberta':
         if 'no_backbone' in cbl_name:
@@ -155,11 +188,11 @@ if __name__ == "__main__":
             preLM = AutoModel.from_pretrained('bert-base-uncased').to(device)
             preLM.eval()
         else:
-            # nếu bạn có lớp BERTCBL, có thể import và dùng; nếu không chỉ hỗ trợ no_backbone
             raise Exception("BERT with backbone_cbl not implemented in this script. Use 'cbl_no_backbone_*.pt'.")
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
+    # ---- Extract concept features ----
     print("get concept features...")
     FL_test_features = []
     for batch in test_loader:
@@ -176,64 +209,71 @@ if __name__ == "__main__":
                     raise Exception("backbone should be roberta, gpt2 or bert")
                 test_features = cbl(test_features)
             else:
-                test_features = backbone_cbl(batch)
+                test_features = backbone_cbl(batch)  # nhận dict
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone_dir + "/"
-    model_name = cbl_name[3:]
-    train_mean = torch.load(prefix + 'train_mean' + model_name)
-    train_std = torch.load(prefix + 'train_std' + model_name)
+    # ---- Load mean/std & W_g, b_g từ cùng thư mục với cbl_path ----
+    base_dir = os.path.dirname(args.cbl_path) + "/"
+    model_name = os.path.basename(args.cbl_path)[3:]  # 'cbl_xxx.pt' -> '_xxx.pt'
+    train_mean = torch.load(base_dir + 'train_mean' + model_name)
+    train_std  = torch.load(base_dir + 'train_std'  + model_name)
 
     test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
     test_c = F.relu(test_c)
 
-    label = encoded_test_dataset["label"]
+    # Nhãn (torch tensor)
+    label = encoded_test_dataset[label_col]
 
+    # Final layer (chỉ dùng để shape/kiểm soát; không cần forward vì sẽ dùng W_g trực tiếp)
     final = torch.nn.Linear(in_features=len(concept_set), out_features=CFG.class_num[cfg_key])
-    W_g_path = prefix + "W_g"
-    b_g_path = prefix + "b_g"
-    if args.sparse:
-        W_g_path += "_sparse"
-        b_g_path += "_sparse"
-    W_g_path += model_name
-    b_g_path += model_name
+
+    W_g_path = base_dir + ("W_g_sparse" if args.sparse else "W_g") + model_name
+    b_g_path = base_dir + ("b_g_sparse" if args.sparse else "b_g") + model_name
     W_g = torch.load(W_g_path)
     b_g = torch.load(b_g_path)
     final.load_state_dict({"weight": W_g, "bias": b_g})
+
     with torch.no_grad():
-        pred = np.argmax(final(test_c).detach().numpy(), axis=-1)
-    correct_indices = np.where(pred == label)[0]
-    mispred_indices = np.where(pred != label)[0]
+        logits = final(test_c)
+        pred = np.argmax(logits.detach().numpy(), axis=-1)
 
+    correct_indices = np.where(pred == label.numpy())[0]
+    mispred_indices = np.where(pred != label.numpy())[0]
 
+    # Mảng đóng góp: [N, num_classes, num_concepts]
     m = test_c.unsqueeze(1) * W_g.unsqueeze(0)
-    print(m.size())
+    print("contrib tensor size:", m.size())
 
+    # Tính error rate như code gốc
     error_rate = []
     for i in correct_indices:
         error = 0
         total = 0
-        value, c = m[i][label[i]].topk(5)
+        gold = int(label[i])
+        value, c = m[i][gold].topk(5)
         for j in range(len(c)):
             if value[j] > 0.0:
                 total += 1
-                if get_labels(c[j], dataset_hf) != label[i]:
+                if get_labels(int(c[j]), dataset_hf) != gold:
                     error += 1
         if total != 0:
             error_rate.append(error/total)
 
-    print("avg error rate:", sum(error_rate)/len(error_rate))
+    print("avg error rate:", (sum(error_rate)/len(error_rate)) if error_rate else "N/A")
 
-    with open(prefix + 'Concept_contribution' + W_g_path.split("/")[-1][3:-3] + '.txt', 'w') as f:
+    # ---- Ghi file Concept_contribution ----
+    out_path = base_dir + 'Concept_contribution' + model_name[:-3] + '.txt'
+    with open(out_path, 'w') as f:
         for i in range(m.size(0)):
-            f.write(test_dataset[CFG.example_name[cfg_key]][i])
+            f.write(test_dataset[text_key][i])
             f.write('\n')
-            c = m[i][label[i]].topk(5)[1]
-            n = m[i][label[i]].topk(5)[0]
+            gold = int(label[i])
+            c = m[i][gold].topk(5)[1]
+            n = m[i][gold].topk(5)[0]
             for j in range(len(c)):
                 if n[j] > 0.0 and i not in mispred_indices:
-                    f.write(CFG.concept_set[cfg_key][c[j]])
+                    f.write(CFG.concept_set[cfg_key][int(c[j])])
                     f.write('\n')
                 else:
                     f.write('\n')
@@ -244,8 +284,8 @@ if __name__ == "__main__":
                 else:
                     f.write('\n')
             if i not in mispred_indices:
-                f.write(str(pred[i]))
+                f.write(str(int(pred[i])))
             else:
                 f.write("incorrect")
-            f.write('\n')
-            f.write('\n')
+            f.write('\n\n')
+    print("Saved:", out_path)
