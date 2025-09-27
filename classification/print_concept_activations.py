@@ -48,8 +48,12 @@ if __name__ == "__main__":
 
     cbl_path = args.cbl_path.strip()
     acs = cbl_path.split("/")[0]
-    dataset_dir = cbl_path.split("/")[1]
-    # infer backbone from path
+    dataset_dir = cbl_path.split("/")[1] 
+    if "/" not in dataset_dir and "_" in dataset_dir:
+        org, rest = dataset_dir.split("_", 1)
+        dataset_hf = f"{org}/{rest}"     
+    else:
+        dataset_hf = dataset_dir
     lower_path = cbl_path.lower()
     if "roberta" in lower_path:
         backbone = "roberta"
@@ -67,9 +71,9 @@ if __name__ == "__main__":
             raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
     cbl_name = cbl_path.split("/")[-1]
     
-    print("------------------------CONCEPT_ACTIVATION---------------------")
+    print("------------------------CONCEPT_CONTRIBUTED---------------------")
     print("loading data...")
-    test_dataset = load_dataset(dataset, split='test')
+    test_dataset = load_dataset(dataset_hf, split='test')
     print("test data len: ", len(test_dataset))
     print("tokenizing...")
     if backbone == 'roberta':
@@ -82,11 +86,23 @@ if __name__ == "__main__":
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
-    encoded_test_dataset = test_dataset.map(lambda e: tokenizer(e[CFG.example_name[dataset]], padding=True, truncation=True, max_length=args.max_length), batched=True, batch_size=len(test_dataset))
-    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[dataset]])
-    if dataset == 'SetFit/sst2':
+    cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
+
+    encoded_test_dataset = test_dataset.map(
+        lambda e: tokenizer(e[CFG.example_name[cfg_key]], padding=True, truncation=True, max_length=args.max_length),
+        batched=True, batch_size=len(test_dataset)
+    )
+    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[cfg_key]])
+
+    cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
+
+    encoded_test_dataset = test_dataset.map(
+        lambda e: tokenizer(e[CFG.example_name[cfg_key]], padding=True, truncation=True,
+                            max_length=args.max_length), batched=True, batch_size=len(test_dataset))
+    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[cfg_key]])
+    if cfg_key == 'SetFit/sst2' or cfg_key == 'SetFit_sst2':
         encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
-    if dataset == 'dbpedia_14':
+    if cfg_key == 'dbpedia_14':
         encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
     encoded_test_dataset = encoded_test_dataset[:len(encoded_test_dataset)]
 
@@ -94,7 +110,7 @@ if __name__ == "__main__":
     test_loader = build_loaders(encoded_test_dataset, mode="test")
 
 
-    concept_set = CFG.concept_set[dataset]
+    concept_set = CFG.concept_set[cfg_key]
     if backbone == 'roberta':
         if 'no_backbone' in cbl_name:
             print("preparing CBL only...")
@@ -155,7 +171,7 @@ if __name__ == "__main__":
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    prefix = "./" + acs + "/" + dataset.replace('/', '_') + "/" + backbone + "/"
+    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone + "/"
     model_name = cbl_name[3:]
     train_mean = torch.load(prefix + 'train_mean' + model_name)
     train_std = torch.load(prefix + 'train_std' + model_name)
@@ -173,7 +189,7 @@ if __name__ == "__main__":
         for j in range(5):
             if value[j] > 1.0:
                 total += 1
-                if get_labels(i, dataset) != label[s[j]]:
+                if get_labels(i, dataset_hf) != label[s[j]]:
                     error += 1
         if total != 0:
             error_rate.append(error/total)
@@ -182,12 +198,12 @@ if __name__ == "__main__":
 
     with open(prefix + 'Concept_activation' + args.cbl_path.split("/")[-1][3:-3] + '.txt', 'w') as f:
         for i in range(test_c.T.size(0)):
-            f.write(CFG.concept_set[dataset][i])
+            f.write(CFG.concept_set[cfg_key][i])
             f.write('\n')
             value, s = test_c.T[i].topk(5)
             for j in range(5):
                 if value[j] > 0.0:
-                    f.write(test_dataset[CFG.example_name[dataset]][s[j]])
+                    f.write(test_dataset[CFG.example_name[cfg_key]][s[j]])
                     f.write('\n')
                 else:
                     f.write('\n')

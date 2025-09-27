@@ -50,7 +50,12 @@ if __name__ == "__main__":
 
     cbl_path = args.cbl_path.strip()
     acs = cbl_path.split("/")[0]
-    dataset_dir = cbl_path.split("/")[1]
+    dataset_dir = cbl_path.split("/")[1] 
+    if "/" not in dataset_dir and "_" in dataset_dir:
+        org, rest = dataset_dir.split("_", 1)
+        dataset_hf = f"{org}/{rest}"    
+    else:
+        dataset_hf = dataset_dir
     # infer backbone from path
     lower_path = cbl_path.lower()
     if "roberta" in lower_path:
@@ -70,7 +75,7 @@ if __name__ == "__main__":
 
     print("------------------------CONCEPT_CONTRIBUTED---------------------")
     print("loading data...")
-    test_dataset = load_dataset(dataset, split='test')
+    test_dataset = load_dataset(dataset_hf, split='test')
     print("test data len: ", len(test_dataset))
     print("tokenizing...")
     if backbone == 'roberta':
@@ -83,21 +88,22 @@ if __name__ == "__main__":
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
+    cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
+
     encoded_test_dataset = test_dataset.map(
-        lambda e: tokenizer(e[CFG.example_name[dataset]], padding=True, truncation=True,
+        lambda e: tokenizer(e[CFG.example_name[cfg_key]], padding=True, truncation=True,
                             max_length=args.max_length), batched=True, batch_size=len(test_dataset))
-    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[dataset]])
-    if dataset == 'SetFit/sst2':
+    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[cfg_key]])
+    if cfg_key == 'SetFit/sst2' or cfg_key == 'SetFit_sst2':
         encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
-    if dataset == 'dbpedia_14':
+    if cfg_key == 'dbpedia_14':
         encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
     encoded_test_dataset = encoded_test_dataset[:len(encoded_test_dataset)]
 
     print("creating loader...")
     test_loader = build_loaders(encoded_test_dataset, mode="test")
 
-
-    concept_set = CFG.concept_set[dataset]
+    concept_set = CFG.concept_set[cfg_key]
     if backbone == 'roberta':
         if 'no_backbone' in cbl_name:
             print("preparing CBL only...")
@@ -158,7 +164,7 @@ if __name__ == "__main__":
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    prefix = "./" + acs + "/" + dataset.replace('/', '_') + "/" + backbone + "/"
+    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone + "/"
     model_name = cbl_name[3:]
     train_mean = torch.load(prefix + 'train_mean' + model_name)
     train_std = torch.load(prefix + 'train_std' + model_name)
@@ -168,7 +174,7 @@ if __name__ == "__main__":
 
     label = encoded_test_dataset["label"]
 
-    final = torch.nn.Linear(in_features=len(concept_set), out_features=CFG.class_num[dataset])
+    final = torch.nn.Linear(in_features=len(concept_set), out_features=CFG.class_num[cfg_key])
     W_g_path = prefix + "W_g"
     b_g_path = prefix + "b_g"
     if args.sparse:
@@ -179,7 +185,7 @@ if __name__ == "__main__":
     W_g = torch.load(W_g_path)
     b_g = torch.load(b_g_path)
     final.load_state_dict({"weight": W_g, "bias": b_g})
-    with torch.torch.no_grad():
+    with torch.no_grad():
         pred = np.argmax(final(test_c).detach().numpy(), axis=-1)
     correct_indices = np.where(pred == label)[0]
     mispred_indices = np.where(pred != label)[0]
@@ -196,7 +202,7 @@ if __name__ == "__main__":
         for j in range(len(c)):
             if value[j] > 0.0:
                 total += 1
-                if get_labels(c[j], dataset) != label[i]:
+                if get_labels(c[j], dataset_hf) != label[i]:
                     error += 1
         if total != 0:
             error_rate.append(error/total)
@@ -205,13 +211,13 @@ if __name__ == "__main__":
 
     with open(prefix + 'Concept_contribution' + W_g_path.split("/")[-1][3:-3] + '.txt', 'w') as f:
         for i in range(m.size(0)):
-            f.write(test_dataset[CFG.example_name[dataset]][i])
+            f.write(test_dataset[CFG.example_name[cfg_key]][i])
             f.write('\n')
             c = m[i][label[i]].topk(5)[1]
             n = m[i][label[i]].topk(5)[0]
             for j in range(len(c)):
                 if n[j] > 0.0 and i not in mispred_indices:
-                    f.write(CFG.concept_set[dataset][c[j]])
+                    f.write(CFG.concept_set[cfg_key][c[j]])
                     f.write('\n')
                 else:
                     f.write('\n')
