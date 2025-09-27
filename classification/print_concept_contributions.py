@@ -31,16 +31,31 @@ def hf_collate(batch):
     for k in keys:
         vals = [b[k] for b in batch]
         v0 = vals[0]
+
+        # Nếu là chuỗi (hoặc list toàn chuỗi) thì giữ nguyên dạng list
+        if isinstance(v0, (str, bytes)) or (
+            isinstance(v0, (list, tuple)) and len(v0) > 0 and isinstance(v0[0], (str, bytes))
+        ):
+            out[k] = vals
+            continue
+
         if isinstance(v0, torch.Tensor):
             out[k] = torch.stack(vals, dim=0)
         elif isinstance(v0, (list, tuple)):
-            out[k] = torch.tensor(vals)
+            try:
+                out[k] = torch.tensor(vals)
+            except Exception:
+                # fallback nếu không chuyển được (ví dụ đối tượng lẫn lộn)
+                out[k] = vals
         elif isinstance(v0, (int, float, np.integer, np.floating)):
             out[k] = torch.tensor(vals)
         elif isinstance(v0, np.ndarray):
             out[k] = torch.from_numpy(np.stack(vals))
         else:
-            out[k] = torch.as_tensor(vals)
+            try:
+                out[k] = torch.as_tensor(vals)
+            except Exception:
+                out[k] = vals
     return out
 
 
@@ -157,6 +172,11 @@ if __name__ == "__main__":
     # Lưu nhãn gốc để phòng bị remove
     orig_labels = test_dataset[label_col]
 
+    try:
+        orig_labels = [int(x) for x in orig_labels]
+    except Exception:
+        pass
+
     # Giữ đúng cột cần thiết + khôi phục label nếu đã mất
     keep_cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", label_col]
                  if c in encoded_test_dataset.column_names]
@@ -219,7 +239,7 @@ if __name__ == "__main__":
     print("get concept features...")
     FL_test_features = []
     for batch in test_loader:
-        batch = {k: v.to(device) for k, v in batch.items()}
+        batch = {k: (v.to(device) if torch.is_tensor(v) else v) for k, v in batch.items()}
         with torch.no_grad():
             if 'no_backbone' in cbl_name:
                 test_features = preLM(input_ids=batch["input_ids"],
@@ -313,3 +333,5 @@ if __name__ == "__main__":
                 f.write("incorrect")
             f.write('\n\n')
     print("Saved:", out_path)
+    print("encoded_test_dataset columns:", encoded_test_dataset.column_names)
+    print("sample types:", {k: type(encoded_test_dataset[k][0]) for k in encoded_test_dataset.column_names})
