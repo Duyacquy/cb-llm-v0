@@ -98,6 +98,14 @@ if __name__ == "__main__":
         encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
     if cfg_key == 'dbpedia_14':
         encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
+
+    # Giữ lại đúng các cột tensor cần thiết
+    keep_cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", "label"]
+                if c in encoded_test_dataset.column_names]
+    drop_cols = [c for c in encoded_test_dataset.column_names if c not in keep_cols]
+    if drop_cols:
+        encoded_test_dataset = encoded_test_dataset.remove_columns(drop_cols)
+
     encoded_test_dataset = encoded_test_dataset[:len(encoded_test_dataset)]
 
     print("creating loader...")
