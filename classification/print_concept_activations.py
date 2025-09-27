@@ -47,6 +47,7 @@ if __name__ == "__main__":
     backbone = args.cbl_path.split("/")[2]
     cbl_name = args.cbl_path.split("/")[-1]
     
+    print("------------------------CONCEPT_ACTIVATION---------------------")
     print("loading data...")
     test_dataset = load_dataset(dataset, split='test')
     print("test data len: ", len(test_dataset))

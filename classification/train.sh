@@ -32,7 +32,5 @@ fi
 
 # Continue with training final layer 
 python train_FL.py --cbl_path="$cbl_model_path" --dataset="${1}" --backbone="${3}"
-print("----------------------------CONCEPT_CONTRIBUTION--------------------------------")
 python print_concept_contributions.py --cbl_path="$cbl_model_path"
-print("----------------------------CONCEPT_ACTIVATION--------------------------------")
 python print_concept_activations.py --cbl_path="$cbl_model_path"
