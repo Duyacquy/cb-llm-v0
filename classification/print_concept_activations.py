@@ -43,7 +43,16 @@ if __name__ == "__main__":
     args, _ = parser.parse_known_args()
 
     acs = args.cbl_path.split("/")[0]
-    dataset = args.cbl_path.split("/")[1] if 'sst2' not in args.cbl_path.split("/")[1] else args.cbl_path.split("/")[1].replace('_', '/')
+    dataset_dir = args.cbl_path.split("/")[1]   # ví dụ: 'Duyacquy_Pubmed-20k'
+
+    # Nếu thư mục dataset không chứa '/', ta phục hồi 'org/dataset' bằng cách
+    # thay *chỉ dấu '_' đầu tiên* thành '/'
+    if "/" not in dataset_dir and "_" in dataset_dir:
+        org, rest = dataset_dir.split("_", 1)
+        dataset = f"{org}/{rest}"                # → 'Duyacquy/Pubmed-20k'
+    else:
+        dataset = dataset_dir
+
     backbone = args.cbl_path.split("/")[2]
     cbl_name = args.cbl_path.split("/")[-1]
     
