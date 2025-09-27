@@ -22,7 +22,26 @@ parser.add_argument("--max_length", type=int, default=512)
 parser.add_argument("--num_workers", type=int, default=0)
 parser.add_argument("--dropout", type=float, default=0.1)
 
-# ----- Dataset wrapper dùng trực tiếp HF Dataset (đã set with_format(type="torch")) -----
+# ---------------- Collate an toàn: ép mọi field trong batch thành torch.Tensor ----------------
+def hf_collate(batch):
+    out = {}
+    keys = batch[0].keys()
+    for k in keys:
+        vals = [b[k] for b in batch]
+        v0 = vals[0]
+        if isinstance(v0, torch.Tensor):
+            out[k] = torch.stack(vals, dim=0)
+        elif isinstance(v0, (list, tuple)):
+            out[k] = torch.tensor(vals)
+        elif isinstance(v0, (int, float, np.integer, np.floating)):
+            out[k] = torch.tensor(vals)
+        elif isinstance(v0, np.ndarray):
+            out[k] = torch.from_numpy(np.stack(vals))
+        else:
+            out[k] = torch.as_tensor(vals)
+    return out
+
+# ---------------- Dataset wrapper: chỉ expose cột cần dùng ----------------
 class ClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, ds, columns):
         self.ds = ds
@@ -34,7 +53,6 @@ class ClassificationDataset(torch.utils.data.Dataset):
     def __len__(self):
         return self.ds.num_rows
 
-
 def build_loader(ds, columns, mode):
     dataset = ClassificationDataset(ds, columns)
     return torch.utils.data.DataLoader(
@@ -42,14 +60,15 @@ def build_loader(ds, columns, mode):
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         shuffle=(mode == "train"),
+        collate_fn=hf_collate,
+        pin_memory=torch.cuda.is_available(),
     )
-
 
 if __name__ == "__main__":
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args, _ = parser.parse_known_args()
 
-    # ---- Parse đường dẫn CBL ----
+    # ---- Parse cbl_path ----
     cbl_path = args.cbl_path.strip()
     parts = cbl_path.split("/")
     if len(parts) < 3:
@@ -58,6 +77,7 @@ if __name__ == "__main__":
     acs = parts[0]              # mpnet_acs / simcse_acs / angle_acs
     dataset_dir = parts[1]      # ví dụ: Duyacquy_Pubmed-20k
     cbl_name = parts[-1]        # ví dụ: cbl_no_backbone_acc.pt
+    backbone_dir = parts[2]     # ví dụ: roberta_cbm, gpt2_cbm, bert ...
 
     # Phục hồi 'org/dataset' nếu bị '_' lần đầu
     if "/" not in dataset_dir and "_" in dataset_dir:
@@ -66,7 +86,7 @@ if __name__ == "__main__":
     else:
         dataset_hf = dataset_dir
 
-    # Suy ra backbone từ cbl_path
+    # Suy ra backbone
     lower_path = cbl_path.lower()
     if "roberta" in lower_path:
         backbone = "roberta"
@@ -79,12 +99,12 @@ if __name__ == "__main__":
         if any(k in seg for k in ["roberta", "gpt2", "bert"]):
             backbone = "roberta" if "roberta" in seg else ("gpt2" if "gpt2" in seg else "bert")
         else:
-            raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
+            raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert).")
 
     print("------------------------CONCEPT_ACTIVATION---------------------")
     print("loading data...")
     test_dataset = load_dataset(dataset_hf, split='test')
-    print("test data len: ", len(test_dataset))
+    print("test data len:", len(test_dataset))
 
     # --- Lấy text column key từ CFG ---
     cfg_key = dataset_hf if dataset_hf in CFG.example_name else dataset_hf.replace("/", "_")
@@ -116,7 +136,7 @@ if __name__ == "__main__":
     if cfg_key == 'dbpedia_14' and 'title' in encoded_test_dataset.column_names:
         encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
 
-    # --- HARD CODE label cho PubMed; nếu không có, fallback thử các tên phổ biến ---
+    # --- Nhãn: PubMed dùng 'target'; nếu không có, fallback ---
     raw_cols = set(test_dataset.column_names)
     label_col = "target" if "target" in raw_cols else None
     if label_col is None:
@@ -147,7 +167,7 @@ if __name__ == "__main__":
     print("creating loader...")
     test_loader = build_loader(encoded_test_dataset, keep_cols, mode="test")
 
-    # ---- Chuẩn bị mô hình ----
+    # ---- Chuẩn bị mô hình (CBL / Backbone+CBL) ----
     concept_set = CFG.concept_set[cfg_key]
     if backbone == 'roberta':
         if 'no_backbone' in cbl_name:
@@ -188,7 +208,7 @@ if __name__ == "__main__":
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
-    # ---- Extract concept features ----
+    # ---- Trích concept activations ----
     print("get concept features...")
     FL_test_features = []
     for batch in test_loader:
@@ -198,17 +218,16 @@ if __name__ == "__main__":
                 test_features = preLM(input_ids=batch["input_ids"],
                                       attention_mask=batch["attention_mask"]).last_hidden_state
                 if backbone in ['roberta', 'bert']:
-                    test_features = test_features[:, 0, :]
+                    test_features = test_features[:, 0, :]  # [CLS]
                 elif backbone == 'gpt2':
                     test_features = eos_pooling(test_features, batch["attention_mask"])
                 else:
                     raise Exception("backbone should be roberta, gpt2 or bert")
                 test_features = cbl(test_features)
             else:
-                # backbone_cbl nhận dict batch
-                test_features = backbone_cbl(batch)
+                test_features = backbone_cbl(batch)  # nhận dict
             FL_test_features.append(test_features)
-    test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
+    test_c = torch.cat(FL_test_features, dim=0).detach().cpu()  # [N, num_concepts]
 
     # ---- Load mean/std từ cùng thư mục với cbl_path ----
     base_dir = os.path.dirname(args.cbl_path) + "/"
@@ -221,25 +240,22 @@ if __name__ == "__main__":
     test_c = F.relu(test_c)
 
     # ---- Lấy nhãn ----
-    label = encoded_test_dataset[label_col]
+    label = encoded_test_dataset[label_col]  # torch.LongTensor
 
-    # ---- Tính error rate theo paper code gốc ----
+    # ---- Tính error rate theo code gốc (trên activations) ----
     error_rate = []
-    for i in range(test_c.T.size(0)):
+    for i in range(test_c.T.size(0)):  # từng concept
         error = 0
         total = 0
         value, s = test_c.T[i].topk(5)
         for j in range(5):
-            if value[j] > 1.0:
+            if value[j] > 1.0:  # ngưỡng như code gốc bạn đang dùng
                 total += 1
-                if get_labels(i, dataset_hf) != label[s[j]]:
+                if get_labels(i, dataset_hf) != int(label[int(s[j])]):
                     error += 1
         if total != 0:
             error_rate.append(error / total)
-    if len(error_rate) > 0:
-        print("avg error rate:", sum(error_rate) / len(error_rate))
-    else:
-        print("avg error rate: N/A (no concepts above threshold)")
+    print("avg error rate:", (sum(error_rate) / len(error_rate)) if error_rate else "N/A")
 
     # ---- Ghi file Concept_activation ----
     out_path = base_dir + 'Concept_activation' + model_name[:-3] + '.txt'

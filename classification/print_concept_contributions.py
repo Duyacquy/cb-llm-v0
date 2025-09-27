@@ -23,7 +23,28 @@ parser.add_argument("--num_workers", type=int, default=0)
 parser.add_argument("--dropout", type=float, default=0.1)
 parser.add_argument('--sparse', action=argparse.BooleanOptionalAction, help="Dùng W_g_sparse/b_g_sparse nếu bật")
 
-# ---------- Dataset wrapper dùng trực tiếp HF Dataset (đã set with_format) ----------
+
+# ---------------- Collate an toàn (ép mọi thứ thành torch.Tensor) ----------------
+def hf_collate(batch):
+    out = {}
+    keys = batch[0].keys()
+    for k in keys:
+        vals = [b[k] for b in batch]
+        v0 = vals[0]
+        if isinstance(v0, torch.Tensor):
+            out[k] = torch.stack(vals, dim=0)
+        elif isinstance(v0, (list, tuple)):
+            out[k] = torch.tensor(vals)
+        elif isinstance(v0, (int, float, np.integer, np.floating)):
+            out[k] = torch.tensor(vals)
+        elif isinstance(v0, np.ndarray):
+            out[k] = torch.from_numpy(np.stack(vals))
+        else:
+            out[k] = torch.as_tensor(vals)
+    return out
+
+
+# ---------------- Dataset wrapper: chỉ expose cột cần dùng ----------------
 class ClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, ds, columns):
         self.ds = ds
@@ -43,6 +64,8 @@ def build_loader(ds, columns, mode):
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         shuffle=(mode == "train"),
+        collate_fn=hf_collate,
+        pin_memory=torch.cuda.is_available(),
     )
 
 
@@ -59,16 +82,16 @@ if __name__ == "__main__":
     acs = parts[0]              # mpnet_acs/simcse_acs/angle_acs
     dataset_dir = parts[1]      # ví dụ: Duyacquy_Pubmed-20k
     cbl_name = parts[-1]        # ví dụ: cbl_no_backbone_acc.pt
-    backbone_dir = parts[2]     # ví dụ: roberta_cbm hoặc bert hoặc gpt2_cbm...
+    backbone_dir = parts[2]     # ví dụ: roberta_cbm, gpt2_cbm hoặc bert
 
-    # Phục hồi 'org/dataset' nếu bị '_' lần đầu
+    # Phục hồi 'org/dataset' nếu bị '_' ở lần đầu
     if "/" not in dataset_dir and "_" in dataset_dir:
         org, rest = dataset_dir.split("_", 1)
         dataset_hf = f"{org}/{rest}"
     else:
         dataset_hf = dataset_dir
 
-    # Suy ra backbone từ đường dẫn
+    # Suy ra backbone
     lower_path = cbl_path.lower()
     if "roberta" in lower_path:
         backbone = "roberta"
@@ -106,14 +129,14 @@ if __name__ == "__main__":
     else:
         raise Exception("backbone should be roberta, gpt2 or bert")
 
-    # Tokenize 1 lần
+    # Tokenize
     encoded_test_dataset = test_dataset.map(
         lambda e: tokenizer(e[text_key], padding=True, truncation=True, max_length=args.max_length),
         batched=True, batch_size=len(test_dataset)
     )
     encoded_test_dataset = encoded_test_dataset.remove_columns([text_key])
 
-    # Bỏ cột thừa nếu có
+    # Bỏ cột thừa (nếu còn)
     if cfg_key in ('SetFit/sst2', 'SetFit_sst2') and 'label_text' in encoded_test_dataset.column_names:
         encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
     if cfg_key == 'dbpedia_14' and 'title' in encoded_test_dataset.column_names:
@@ -145,7 +168,7 @@ if __name__ == "__main__":
         if label_col not in keep_cols:
             keep_cols.append(label_col)
 
-    # Dataset trả tensor trực tiếp
+    # (Tuỳ chọn) Để HF trả về luôn tensor cho các cột keep_cols
     encoded_test_dataset = encoded_test_dataset.with_format(type="torch", columns=keep_cols)
 
     print("creating loader...")
@@ -202,18 +225,19 @@ if __name__ == "__main__":
                 test_features = preLM(input_ids=batch["input_ids"],
                                       attention_mask=batch["attention_mask"]).last_hidden_state
                 if backbone in ['roberta', 'bert']:
-                    test_features = test_features[:, 0, :]
+                    test_features = test_features[:, 0, :]  # [CLS]
                 elif backbone == 'gpt2':
                     test_features = eos_pooling(test_features, batch["attention_mask"])
                 else:
                     raise Exception("backbone should be roberta, gpt2 or bert")
                 test_features = cbl(test_features)
             else:
-                test_features = backbone_cbl(batch)  # nhận dict
+                # backbone_cbl nhận dict batch (đã có input_ids, attention_mask, ...)
+                test_features = backbone_cbl(batch)
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    # ---- Load mean/std & W_g, b_g từ cùng thư mục với cbl_path ----
+    # ---- Load mean/std & W_g, b_g ngay cạnh cbl_path ----
     base_dir = os.path.dirname(args.cbl_path) + "/"
     model_name = os.path.basename(args.cbl_path)[3:]  # 'cbl_xxx.pt' -> '_xxx.pt'
     train_mean = torch.load(base_dir + 'train_mean' + model_name)
@@ -223,23 +247,23 @@ if __name__ == "__main__":
     test_c = F.relu(test_c)
 
     # Nhãn (torch tensor)
-    label = encoded_test_dataset[label_col]
+    label = encoded_test_dataset[label_col]  # đã là torch.Tensor
 
-    # Final layer (chỉ dùng để shape/kiểm soát; không cần forward vì sẽ dùng W_g trực tiếp)
+    # Final layer để shape + dùng W_g trực tiếp
     final = torch.nn.Linear(in_features=len(concept_set), out_features=CFG.class_num[cfg_key])
 
-    W_g_path = base_dir + ("W_g_sparse" if args.sparse else "W_g") + model_name
-    b_g_path = base_dir + ("b_g_sparse" if args.sparse else "b_g") + model_name
+    W_g_path = base_dir + ( "W_g_sparse" if args.sparse else "W_g" ) + model_name
+    b_g_path = base_dir + ( "b_g_sparse" if args.sparse else "b_g" ) + model_name
     W_g = torch.load(W_g_path)
     b_g = torch.load(b_g_path)
     final.load_state_dict({"weight": W_g, "bias": b_g})
 
     with torch.no_grad():
         logits = final(test_c)
-        pred = np.argmax(logits.detach().numpy(), axis=-1)
+        pred = np.argmax(logits.detach().cpu().numpy(), axis=-1)
 
-    correct_indices = np.where(pred == label.numpy())[0]
-    mispred_indices = np.where(pred != label.numpy())[0]
+    correct_indices = np.where(pred == label.cpu().numpy())[0]
+    mispred_indices = np.where(pred != label.cpu().numpy())[0]
 
     # Mảng đóng góp: [N, num_classes, num_concepts]
     m = test_c.unsqueeze(1) * W_g.unsqueeze(0)
