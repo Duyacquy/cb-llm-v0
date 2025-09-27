@@ -42,7 +42,7 @@ def build_loaders(texts, mode):
 
 if __name__ == "__main__":
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     acs = args.cbl_path.split("/")[0]
     dataset = args.cbl_path.split("/")[1] if 'sst2' not in args.cbl_path.split("/")[1] else args.cbl_path.split("/")[1].replace('_', '/')

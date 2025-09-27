@@ -41,7 +41,7 @@ def build_loaders(texts, mode):
     return dataloader
 
 if __name__ == "__main__":
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false" 
     args = parser.parse_args()
 
     acs = args.cbl_path.split("/")[0]
