@@ -3,7 +3,11 @@ import os
 import torch
 import torch.nn.functional as F
 import numpy as np
-from transformers import RobertaTokenizerFast, RobertaModel, GPT2TokenizerFast, GPT2Model
+from transformers import (
+    RobertaTokenizerFast, RobertaModel,
+    GPT2TokenizerFast, GPT2Model,
+    AutoTokenizer, AutoModel
+)
 from datasets import load_dataset
 import config as CFG
 from modules import CBL, RobertaCBL, GPT2CBL
@@ -42,32 +46,41 @@ if __name__ == "__main__":
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args, _ = parser.parse_known_args()
 
-    acs = args.cbl_path.split("/")[0]
-    dataset_dir = args.cbl_path.split("/")[1]   # ví dụ: 'Duyacquy_Pubmed-20k'
-
-    # Nếu thư mục dataset không chứa '/', ta phục hồi 'org/dataset' bằng cách
-    # thay *chỉ dấu '_' đầu tiên* thành '/'
-    if "/" not in dataset_dir and "_" in dataset_dir:
-        org, rest = dataset_dir.split("_", 1)
-        dataset = f"{org}/{rest}"                # → 'Duyacquy/Pubmed-20k'
+    cbl_path = args.cbl_path.strip()
+    acs = cbl_path.split("/")[0]
+    dataset_dir = cbl_path.split("/")[1]
+    # infer backbone from path
+    lower_path = cbl_path.lower()
+    if "roberta" in lower_path:
+        backbone = "roberta"
+    elif "gpt2" in lower_path:
+        backbone = "gpt2"
+    elif "bert" in lower_path:
+        backbone = "bert"
     else:
-        dataset = dataset_dir
-
-    backbone = args.cbl_path.split("/")[2]
-    cbl_name = args.cbl_path.split("/")[-1]
+        # fallback segment check
+        seg = cbl_path.split("/")[2] if len(cbl_path.split("/")) > 2 else ""
+        sl = seg.lower()
+        if any(k in sl for k in ["roberta","gpt2","bert"]):
+            backbone = "roberta" if "roberta" in sl else ("gpt2" if "gpt2" in sl else "bert")
+        else:
+            raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
+    cbl_name = cbl_path.split("/")[-1]
     
     print("------------------------CONCEPT_ACTIVATION---------------------")
     print("loading data...")
     test_dataset = load_dataset(dataset, split='test')
     print("test data len: ", len(test_dataset))
     print("tokenizing...")
-    if 'roberta' in backbone:
+    if backbone == 'roberta':
         tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
-    elif 'gpt2' in backbone:
+    elif backbone == 'gpt2':
         tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
         tokenizer.pad_token = tokenizer.eos_token
+    elif backbone == 'bert':
+        tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
     else:
-        raise Exception("backbone should be roberta or gpt2")
+        raise Exception("backbone should be roberta, gpt2 or bert")
 
     encoded_test_dataset = test_dataset.map(lambda e: tokenizer(e[CFG.example_name[dataset]], padding=True, truncation=True, max_length=args.max_length), batched=True, batch_size=len(test_dataset))
     encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[dataset]])
@@ -82,7 +95,7 @@ if __name__ == "__main__":
 
 
     concept_set = CFG.concept_set[dataset]
-    if 'roberta' in backbone:
+    if backbone == 'roberta':
         if 'no_backbone' in cbl_name:
             print("preparing CBL only...")
             cbl = CBL(len(concept_set), args.dropout).to(device)
@@ -95,7 +108,7 @@ if __name__ == "__main__":
             backbone_cbl = RobertaCBL(len(concept_set), args.dropout).to(device)
             backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
             backbone_cbl.eval()
-    elif 'gpt2' in backbone:
+    elif backbone == 'gpt2':
         if 'no_backbone' in cbl_name:
             print("preparing CBL only...")
             cbl = CBL(len(concept_set), args.dropout).to(device)
@@ -108,8 +121,19 @@ if __name__ == "__main__":
             backbone_cbl = GPT2CBL(len(concept_set), args.dropout).to(device)
             backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
             backbone_cbl.eval()
+    elif backbone == 'bert':
+        if 'no_backbone' in cbl_name:
+            print("preparing CBL only...")
+            cbl = CBL(len(concept_set), args.dropout).to(device)
+            cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
+            cbl.eval()
+            preLM = AutoModel.from_pretrained('bert-base-uncased').to(device)
+            preLM.eval()
+        else:
+            # nếu bạn có lớp BERTCBL, có thể import và dùng; nếu không chỉ hỗ trợ no_backbone
+            raise Exception("BERT with backbone_cbl not implemented in this script. Use 'cbl_no_backbone_*.pt'.")
     else:
-        raise Exception("backbone should be roberta or gpt2")
+        raise Exception("backbone should be roberta, gpt2 or bert")
 
     print("get concept features...")
     FL_test_features = []
@@ -119,12 +143,12 @@ if __name__ == "__main__":
             if 'no_backbone' in cbl_name:
                 test_features = preLM(input_ids=batch["input_ids"],
                                       attention_mask=batch["attention_mask"]).last_hidden_state
-                if args.backbone == 'roberta':
+                if backbone in ['roberta', 'bert']:
                     test_features = test_features[:, 0, :]
-                elif args.backbone == 'gpt2':
+                elif backbone == 'gpt2':
                     test_features = eos_pooling(test_features, batch["attention_mask"])
                 else:
-                    raise Exception("backbone should be roberta or gpt2")
+                    raise Exception("backbone should be roberta, gpt2 or bert")
                 test_features = cbl(test_features)
             else:
                 test_features = backbone_cbl(batch)
