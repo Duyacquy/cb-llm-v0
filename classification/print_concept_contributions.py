@@ -71,7 +71,9 @@ if __name__ == "__main__":
             backbone = "roberta" if "roberta" in sl else ("gpt2" if "gpt2" in sl else "bert")
         else:
             raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
+        
     cbl_name = cbl_path.split("/")[-1]
+    backbone_dir = cbl_path.split("/")[2]
 
     print("------------------------CONCEPT_CONTRIBUTED---------------------")
     print("loading data...")
@@ -106,7 +108,7 @@ if __name__ == "__main__":
     if drop_cols:
         encoded_test_dataset = encoded_test_dataset.remove_columns(drop_cols)
 
-    encoded_test_dataset = encoded_test_dataset[:len(encoded_test_dataset)]
+    encoded_test_dataset = encoded_test_dataset.with_format(type="torch", columns=keep_cols)
 
     print("creating loader...")
     test_loader = build_loaders(encoded_test_dataset, mode="test")
@@ -172,7 +174,7 @@ if __name__ == "__main__":
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone + "/"
+    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone_dir + "/"
     model_name = cbl_name[3:]
     train_mean = torch.load(prefix + 'train_mean' + model_name)
     train_std = torch.load(prefix + 'train_std' + model_name)

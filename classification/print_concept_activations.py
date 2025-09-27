@@ -70,8 +70,9 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Cannot infer backbone from cbl_path='{cbl_path}' (need roberta/gpt2/bert in path).")
     cbl_name = cbl_path.split("/")[-1]
+    backbone_dir = cbl_path.split("/")[2]
     
-    print("------------------------CONCEPT_CONTRIBUTED---------------------")
+    print("------------------------CONCEPT_ACTIVATION---------------------")
     print("loading data...")
     test_dataset = load_dataset(dataset_hf, split='test')
     print("test data len: ", len(test_dataset))
@@ -179,7 +180,7 @@ if __name__ == "__main__":
             FL_test_features.append(test_features)
     test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
 
-    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone + "/"
+    prefix = "./" + acs + "/" + dataset_dir + "/" + backbone_dir + "/"
     model_name = cbl_name[3:]
     train_mean = torch.load(prefix + 'train_mean' + model_name)
     train_std = torch.load(prefix + 'train_std' + model_name)
