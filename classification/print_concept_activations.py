@@ -188,7 +188,7 @@ if __name__ == "__main__":
     test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
     test_c = F.relu(test_c)
 
-    label = encoded_test_dataset["label"]
+    label = encoded_test_dataset["target"]
 
     error_rate = []
     for i in range(test_c.T.size(0)):

@@ -26,22 +26,27 @@ parser.add_argument("--dropout", type=float, default=0.1)
 
 
 class ClassificationDataset(torch.utils.data.Dataset):
-    def __init__(self, texts):
-        self.texts = texts
+    def __init__(self, ds, columns):
+        self.ds = ds
+        self.columns = columns  
 
     def __getitem__(self, idx):
-        t = {key: torch.tensor(values[idx]) for key, values in self.texts.items()}
-        return t
+        return {k: self.ds[k][idx] for k in self.columns} 
 
     def __len__(self):
-        return len(self.texts['input_ids'])
+        return self.ds.num_rows
 
 
-def build_loaders(texts, mode):
-    dataset = ClassificationDataset(texts)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers,
-                                             shuffle=True if mode == "train" else False)
-    return dataloader
+def build_loaders(ds, mode):
+    cols = [c for c in ["input_ids", "attention_mask", "token_type_ids", "label"]
+            if c in ds.column_names]
+    dataset = ClassificationDataset(ds, cols)
+    return torch.utils.data.DataLoader(
+        dataset,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=(mode == "train"),
+    )
 
 
 if __name__ == "__main__":
@@ -108,6 +113,7 @@ if __name__ == "__main__":
     if drop_cols:
         encoded_test_dataset = encoded_test_dataset.remove_columns(drop_cols)
 
+    # Trả về tensor trực tiếp từ HF dataset
     encoded_test_dataset = encoded_test_dataset.with_format(type="torch", columns=keep_cols)
 
     print("creating loader...")
