@@ -756,14 +756,14 @@ import json
 
 def main():
     """Hàm chính điều phối toàn bộ quá trình."""
-    output_directory = r"C:\Users\thaol\Downloads\test"
+    output_directory = r"D:\Lap\iSE\cb-llm-v0\concept_gen"
     # Thay đổi tên tệp đầu ra thành .js on
-    output_filename = "generated_drug_features.json"
+    output_filename = "generated_medical_features.json"
     full_output_path = os.path.join(output_directory, output_filename)
     
     try:
         configure_llm()
-        prompt_data = DrugReviewPrompt()
+        prompt_data = MedAbsPrompt()
         
         # Lưu ý: 'gemini-2.0-flash-lite' không phải là một model hợp lệ tại thời điểm này.
         # Sử dụng 'gemini-1.5-flash-latest' là lựa chọn nhanh và hiệu quả.
