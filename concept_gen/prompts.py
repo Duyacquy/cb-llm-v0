@@ -458,7 +458,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Code examples are well-formatted, complete, and reproducible.</example>
 <example>The problem statement is universally understood on first reading.</example>
 <example>All necessary context and error messages are clearly provided upfront.</example>
-List other 20 important features that are often present when describing a Stack Overflow question that is classified as HQ. Need to follow the template above, i.e.
+List other 30 important features that are often present when describing a Stack Overflow question that is classified as HQ. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
@@ -470,7 +470,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Initial comments often request clarification or additional information.</example>
 <example>The question's original tags were vague or incorrect, requiring correction.</example>
 <example>It was initially hard to read due to poor formatting, which was later fixed by others.</example>
-List other 20 important features that are often present when describing a Stack Overflow question that is classified as LQ_EDIT. Need to follow the template above, i.e.
+List other 30 important features that are often present when describing a Stack Overflow question that is classified as LQ_EDIT. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
@@ -482,7 +482,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Comments often point to the question being a duplicate or not suitable for the platform.</example>
 <example>Does not attract any answers, or only highly speculative/non-solution answers.</example>
 <example>Asks for broad advice, opinions, or solutions to entire projects rather than specific problems.</example>
-List other 20 important features that are often present when describing a Stack Overflow question that is classified as LQ_CLOSE. Need to follow the template above, i.e.
+List other 30 important features that are often present when describing a Stack Overflow question that is classified as LQ_CLOSE. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
@@ -758,12 +758,12 @@ def main():
     """Hàm chính điều phối toàn bộ quá trình."""
     output_directory = r"D:\Lap\iSE\cb-llm-v0\concept_gen"
     # Thay đổi tên tệp đầu ra thành .js on
-    output_filename = "generated_medical_features.json"
+    output_filename = "generated_stack_features.json"
     full_output_path = os.path.join(output_directory, output_filename)
     
     try:
         configure_llm()
-        prompt_data = MedAbsPrompt()
+        prompt_data = StackOverflowPrompt()
         
         # Lưu ý: 'gemini-2.0-flash-lite' không phải là một model hợp lệ tại thời điểm này.
         # Sử dụng 'gemini-1.5-flash-latest' là lựa chọn nhanh và hiệu quả.
@@ -771,7 +771,7 @@ def main():
 
         all_generated_features = []
 
-        print("\nBắt đầu quá trình tạo các đặc điểm y tế...")
+        print("\nBắt đầu quá trình tạo các đặc điểm luật...")
         print("-" * 50)
 
         for label, user_prompt in prompt_data.labels_to_prompts.items():
