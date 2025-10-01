@@ -458,7 +458,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Code examples are well-formatted, complete, and reproducible.</example>
 <example>The problem statement is universally understood on first reading.</example>
 <example>All necessary context and error messages are clearly provided upfront.</example>
-List other 30 important features that are often present when describing a Stack Overflow question that is classified as HQ. Need to follow the template above, i.e.
+List other 15 important features that are often present when describing a Stack Overflow question that is classified as HQ. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
@@ -470,7 +470,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Initial comments often request clarification or additional information.</example>
 <example>The question's original tags were vague or incorrect, requiring correction.</example>
 <example>It was initially hard to read due to poor formatting, which was later fixed by others.</example>
-List other 30 important features that are often present when describing a Stack Overflow question that is classified as LQ_EDIT. Need to follow the template above, i.e.
+List other 15 important features that are often present when describing a Stack Overflow question that is classified as LQ_EDIT. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
@@ -482,7 +482,7 @@ Here are some examples of key features that are often present when describing a 
 <example>Comments often point to the question being a duplicate or not suitable for the platform.</example>
 <example>Does not attract any answers, or only highly speculative/non-solution answers.</example>
 <example>Asks for broad advice, opinions, or solutions to entire projects rather than specific problems.</example>
-List other 30 important features that are often present when describing a Stack Overflow question that is classified as LQ_CLOSE. Need to follow the template above, i.e.
+List other 15 important features that are often present when describing a Stack Overflow question that is classified as LQ_CLOSE. Need to follow the template above, i.e.
 <example>features</example>.
 """
 
