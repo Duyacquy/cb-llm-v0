@@ -14,7 +14,7 @@ a patient who has neoplasms. Each feature is shown between the tag
 <example>Drenching night sweats.</example>
 <example>Abnormal lumps or bumps.</example>
 <example>Changes in bowel or bladder habits.</example>
-List 30 other different important features that are often present
+List 15 other different important features that are often present
 when having neoplasms. Need to follow the template above, i.e. 
 <example>features</example>.
 """
@@ -28,7 +28,7 @@ a patient who has digestive system diseases. Each feature is shown between the t
 <example>nausea and vomiting.</example>
 <example>bloating and gas.</example> 
 <example>heartburn.</example> 
-List 30 other different important features that are often present
+List 15 other different important features that are often present
 when having digestive system diseases. Need to follow the template above, i.e. 
 <example>features</example>.
 """
@@ -42,7 +42,7 @@ a patient who has nervous system diseases. Each feature is shown between the tag
 <example>Weakness or loss of muscle strength.
 </example> 
 <example>Loss of sight or double vision.</example> 
-List 30 other different important features that are often present
+List 15 other different important features that are often present
 when having nervous system diseases. Need to follow the template above, i.e. 
 <example>features</example>.
 """
@@ -55,7 +55,7 @@ a patient who has cardiovascular diseases. Each feature is shown between the tag
 <example>Pain in legs when walking.</example> 
 <example>Bulging neck veins.</example> 
 <example>Abnormal heart sounds.</example> 
-List 30 other different important features that are often present
+List 15 other different important features that are often present
 when having cardiovascular diseases. Need to follow the template above, i.e. 
 <example>features</example>.
 """
@@ -69,7 +69,7 @@ a patient who has general pathological diseases. Each feature is shown between t
 <example>Elevated body temperature.</example> 
 <example>Dehydration.</example> 
 <example>Increased pulse and respiration.</example> 
-List 30 other different important features that are often present
+List 15 other different important features that are often present
 when having general pathological diseases. Need to follow the template above, i.e. 
 <example>features</example>.
 """
