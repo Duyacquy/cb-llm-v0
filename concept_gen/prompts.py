@@ -493,7 +493,7 @@ Here are some examples of key features that are often present when a sentence se
 <example>Identification of a gap, controversy, or an unanswered question in the current literature.</example>
 <example>Description of the standard treatment, current practice, or existing diagnostic method.</example>
 <example>Statement about the underlying mechanism of a disease.</example>
-List 30 other important features that are often present when a sentence provides BACKGROUND information in a medical abstract. Need to follow the template above, i.e.,
+List 15 other important features that are often present when a sentence provides BACKGROUND information in a medical abstract. Need to follow the template above, i.e.,
 <example>features</example>.
 """
 
@@ -504,7 +504,7 @@ Here are some examples of key features that are often present when a sentence st
 <example>Use of infinitive verbs to describe the purpose (e.g., "to determine," "to investigate," "to compare").</example>
 <example>Defining the primary endpoint or main outcome of interest for the study.</example>
 <example>Stating the specific interventions or populations being evaluated.</example>
-List 30 other important features that are often present when a sentence outlines the OBJECTIVE of a medical study. Need to follow the template above, i.e.,
+List 15 other important features that are often present when a sentence outlines the OBJECTIVE of a medical study. Need to follow the template above, i.e.,
 <example>features</example>.
 """
 
@@ -515,7 +515,7 @@ Here are some examples of key features that are often present when a sentence de
 <example>Explanation of the intervention administered to the treatment group.</example>
 <example>Specification of the control group (e.g., placebo, standard care).</example>
 <example>Mention of the statistical tests used for data analysis.</example>
-List 30 other important features that are often present when a sentence details the METHODS of a medical study. Need to follow the template above, i.e.,
+List 15 other important features that are often present when a sentence details the METHODS of a medical study. Need to follow the template above, i.e.,
 <example>features</example>.
 """
 
@@ -526,7 +526,7 @@ Here are some examples of key features that are often present when a sentence re
 <example>Direct comparison of outcomes between the study's intervention and control groups.</example>
 <example>Phrases indicating findings, such as "was significantly higher" or "showed no difference."</example>
 <example>Statement of the main findings without interpretation or implications.</example>
-List 30 other important features that are often present when a sentence presents the RESULTS of a medical study. Need to follow the template above, i.e.,
+List 15 other important features that are often present when a sentence presents the RESULTS of a medical study. Need to follow the template above, i.e.,
 <example>features</example>.
 """
 
@@ -537,7 +537,7 @@ Here are some examples of key features that are often present when a sentence st
 <example>Phrases indicating a summary, such as "in conclusion," or "our findings suggest that."</example>
 <example>Comparison of the study's findings with previous research or established knowledge.</example>
 <example>Suggestion for future research or acknowledgment of the study's limitations.</example>
-List 30 other important features that are often present when a sentence draws CONCLUSIONS from a medical study. Need to follow the template above, i.e.,
+List 15 other important features that are often present when a sentence draws CONCLUSIONS from a medical study. Need to follow the template above, i.e.,
 <example>features</example>.
 """
 
@@ -758,12 +758,12 @@ def main():
     """Hàm chính điều phối toàn bộ quá trình."""
     output_directory = r"D:\Lap\iSE\cb-llm-v0\concept_gen"
     # Thay đổi tên tệp đầu ra thành .js on
-    output_filename = "generated_stack_features.json"
+    output_filename = "generated_pubmed_features.json"
     full_output_path = os.path.join(output_directory, output_filename)
     
     try:
         configure_llm()
-        prompt_data = StackOverflowPrompt()
+        prompt_data = PubmedPrompt()
         
         # Lưu ý: 'gemini-2.0-flash-lite' không phải là một model hợp lệ tại thời điểm này.
         # Sử dụng 'gemini-1.5-flash-latest' là lựa chọn nhanh và hiệu quả.

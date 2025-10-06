@@ -164,7 +164,7 @@ def stack_over_flow_labels(n):
     return len(boundaries)
 
 def pubmed_abs_labels(n):
-    boundaries = [30, 60, 90, 120, 150]
+    boundaries = [15, 30, 45, 60, 75]
     for i, bound in enumerate(boundaries):
         if n < bound:
             return i
