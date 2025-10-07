@@ -1,186 +1,177 @@
+#!/usr/bin/env python3
 import argparse
 import os
 import torch
 import torch.nn.functional as F
 import numpy as np
-from transformers import RobertaTokenizerFast, RobertaModel, GPT2TokenizerFast, GPT2Model
-from transformers import AutoTokenizer, BertModel
+from transformers import (
+    RobertaTokenizerFast, RobertaModel,
+    GPT2TokenizerFast, GPT2Model,
+    AutoTokenizer, BertModel
+)
 from datasets import load_dataset
 import config as CFG
 from modules import CBL, RobertaCBL, GPT2CBL, BERTCBL
 from utils import normalize, get_labels, eos_pooling
 
+# ------------------ Argument parsing ------------------
 parser = argparse.ArgumentParser()
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-parser.add_argument("--cbl_path", type=str, default="mpnet_acs/SetFit_sst2/roberta_cbm/cbl.pt")
-parser.add_argument("--batch_size", type=int, default=256)
-
+parser.add_argument("--cbl_path", type=str, required=True,
+                    help="Path to trained CBL model (e.g., mpnet_acs/Duyacquy_Pubmed-20k/bert_cbm/cbl_no_backbone_acc.pt)")
+parser.add_argument("--batch_size", type=int, default=128)
 parser.add_argument("--max_length", type=int, default=512)
 parser.add_argument("--num_workers", type=int, default=0)
 parser.add_argument("--dropout", type=float, default=0.1)
+args = parser.parse_args()
 
-class ClassificationDataset(torch.utils.data.Dataset):
-    def __init__(self, texts):
-        self.texts = texts
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    def __getitem__(self, idx):
-        t = {key: torch.tensor(values[idx]) for key, values in self.texts.items()}
+# ------------------ Parse dataset/backbone from path ------------------
+parts = args.cbl_path.split("/")
+if len(parts) < 4:
+    raise ValueError(f"Unexpected cbl_path: {args.cbl_path}")
 
-        return t
+safe_dataset = parts[-3]                 # e.g. Duyacquy_Pubmed-20k
+dataset = safe_dataset.replace("_", "/") # => Duyacquy/Pubmed-20k
+backbone = parts[-2].replace("_cbm", "") # roberta | gpt2 | bert
+cbl_name = parts[-1]
 
-    def __len__(self):
-        return len(self.texts['input_ids'])
+print(f"[Info] Dataset: {dataset}, Backbone: {backbone}, Model: {cbl_name}")
 
+# ------------------ Load dataset ------------------
+print("[Info] Loading test split...")
+test_dataset = load_dataset(dataset, split="test")
 
-def build_loaders(texts, mode):
-    dataset = ClassificationDataset(texts)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers,
-                                             shuffle=True if mode == "train" else False)
-    return dataloader
+# Determine text column name
+text_col = CFG.dataset_config.get(dataset, {}).get("text_column", None)
+if text_col is None:
+    text_col = "text" if "text" in test_dataset.column_names else test_dataset.column_names[0]
 
-if __name__ == "__main__":
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    args = parser.parse_args()
+print(f"[Info] Using text column: {text_col}")
 
-    parts = args.cbl_path.split("/")
-    if len(parts) < 4:
-        raise ValueError(f"Unexpected cbl_path: {args.cbl_path}")
+test_texts = test_dataset[text_col]
 
-    safe_dataset = parts[-3]                      
-    dataset = safe_dataset.replace("_", "/")     
+# ------------------ Tokenization ------------------
+print("[Info] Tokenizing test data...")
+if "roberta" in backbone:
+    tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base")
+elif "gpt2" in backbone:
+    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    tokenizer.pad_token = tokenizer.eos_token
+elif "bert" in backbone:
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+else:
+    raise ValueError("Unsupported backbone")
 
-    backbone_cbm = parts[-2]                 
-    backbone = backbone_cbm.replace("_cbm", "")
-    cbl_name = args.cbl_path.split("/")[-1]
-    
-    print("loading data...")
-    test_dataset = load_dataset(dataset, split='test')
-    print("test data len: ", len(test_dataset))
-    print("tokenizing...")
-    if 'roberta' in backbone:
-        tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
-    elif 'gpt2' in backbone:
-        tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
-        tokenizer.pad_token = tokenizer.eos_token
-    elif 'bert' in backbone:                            # NEW
-        tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')  # NEW
-    else:
-        raise Exception("backbone should be roberta, gpt2 or bert") 
+enc = tokenizer(
+    test_texts,
+    padding=True,
+    truncation=True,
+    max_length=args.max_length,
+    return_tensors="pt"
+)
 
-    encoded_test_dataset = test_dataset.map(lambda e: tokenizer(e[CFG.example_name[dataset]], padding=True, truncation=True, max_length=args.max_length), batched=True, batch_size=len(test_dataset))
-    encoded_test_dataset = encoded_test_dataset.remove_columns([CFG.example_name[dataset]])
-    if dataset == 'SetFit/sst2':
-        encoded_test_dataset = encoded_test_dataset.remove_columns(['label_text'])
-    if dataset == 'dbpedia_14':
-        encoded_test_dataset = encoded_test_dataset.remove_columns(['title'])
-    encoded_test_dataset = encoded_test_dataset[:len(encoded_test_dataset)]
+test_loader = torch.utils.data.DataLoader(
+    torch.utils.data.TensorDataset(enc["input_ids"], enc["attention_mask"]),
+    batch_size=args.batch_size,
+    shuffle=False,
+    num_workers=max(0, args.num_workers),
+)
 
-    print("creating loader...")
-    test_loader = build_loaders(encoded_test_dataset, mode="test")
+# ------------------ Load CBL / Backbone ------------------
+concept_set = CFG.concept_set[dataset]
+print("[Info] Preparing model(s)...")
 
+if "no_backbone" in cbl_name:
+    print("[Info] Loading CBL only...")
+    cbl = CBL(len(concept_set), args.dropout).to(device)
+    cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
+    cbl.eval()
 
-    concept_set = CFG.concept_set[dataset]
-    if 'roberta' in backbone:
-        if 'no_backbone' in cbl_name:
-            print("preparing CBL only...")
-            cbl = CBL(len(concept_set), args.dropout).to(device)
-            cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            cbl.eval()
-            preLM = RobertaModel.from_pretrained('roberta-base').to(device)
-            preLM.eval()
+    if "roberta" in backbone:
+        preLM = RobertaModel.from_pretrained("roberta-base").to(device)
+    elif "gpt2" in backbone:
+        preLM = GPT2Model.from_pretrained("gpt2").to(device)
+    elif "bert" in backbone:
+        preLM = BertModel.from_pretrained("bert-base-uncased").to(device)
+    preLM.eval()
+else:
+    print(f"[Info] Loading {backbone}+CBL...")
+    if "roberta" in backbone:
+        backbone_cbl = RobertaCBL(len(concept_set), args.dropout).to(device)
+    elif "gpt2" in backbone:
+        backbone_cbl = GPT2CBL(len(concept_set), args.dropout).to(device)
+    elif "bert" in backbone:
+        backbone_cbl = BERTCBL(len(concept_set), args.dropout).to(device)
+    backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
+    backbone_cbl.eval()
+
+# ------------------ Compute activations ------------------
+print("[Info] Computing concept activations...")
+FL_test_features = []
+
+for input_ids, attention_mask in test_loader:
+    batch = {"input_ids": input_ids.to(device), "attention_mask": attention_mask.to(device)}
+
+    with torch.no_grad():
+        if "no_backbone" in cbl_name:
+            feats = preLM(**batch).last_hidden_state
+            if "gpt2" in backbone:
+                feats = eos_pooling(feats, batch["attention_mask"])
+            else:  # roberta / bert → CLS pooling
+                feats = feats[:, 0, :]
+            out = cbl(feats)
         else:
-            print("preparing backbone(roberta)+CBL...")
-            backbone_cbl = RobertaCBL(len(concept_set), args.dropout).to(device)
-            backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            backbone_cbl.eval()
-    elif 'gpt2' in backbone:
-        if 'no_backbone' in cbl_name:
-            print("preparing CBL only...")
-            cbl = CBL(len(concept_set), args.dropout).to(device)
-            cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            cbl.eval()
-            preLM = GPT2Model.from_pretrained('gpt2').to(device)
-            preLM.eval()
-        else:
-            print("preparing backbone(gpt2)+CBL...")
-            backbone_cbl = GPT2CBL(len(concept_set), args.dropout).to(device)
-            backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            backbone_cbl.eval()
-    elif 'bert' in backbone:                                     # NEW
-        if 'no_backbone' in cbl_name:
-            print("preparing CBL only.")
-            cbl = CBL(len(concept_set), args.dropout).to(device)
-            cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            cbl.eval()
-            preLM = BertModel.from_pretrained('bert-base-uncased').to(device)  # NEW
-            preLM.eval()
-        else:
-            print("preparing backbone(bert)+CBL.")
-            backbone_cbl = BERTCBL(len(concept_set), args.dropout).to(device)  # NEW
-            backbone_cbl.load_state_dict(torch.load(args.cbl_path, map_location=device))
-            backbone_cbl.eval()
-    else:
-        raise Exception("backbone should be roberta or gpt2")
+            out = backbone_cbl(**batch)
 
-    print("get concept features...")
-    FL_test_features = []
-    for batch in test_loader:
-        batch = {k: v.to(device) for k, v in batch.items()}
-        with torch.no_grad():
-            if 'no_backbone' in cbl_name:
-                test_features = preLM(input_ids=batch["input_ids"],
-                                      attention_mask=batch["attention_mask"]).last_hidden_state
-                if 'gpt2' in backbone:
-                    test_features = eos_pooling(test_features, batch["attention_mask"])
-                else:  # roberta hoặc bert dùng CLS
-                    test_features = test_features[:, 0, :]
-                test_features = cbl(test_features)
-            else:
-                test_features = backbone_cbl(batch)
-            FL_test_features.append(test_features)
-    test_c = torch.cat(FL_test_features, dim=0).detach().cpu()
+    FL_test_features.append(out.detach().cpu())
 
-    prefix = "./" + acs + "/" + dataset.replace('/', '_') + "/" + backbone + "/"
-    model_name = cbl_name[3:]
-    train_mean = torch.load(prefix + 'train_mean' + model_name)
-    train_std = torch.load(prefix + 'train_std' + model_name)
+test_c = torch.cat(FL_test_features, dim=0)
+print(f"[Info] Feature shape: {test_c.shape}")
 
-    test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
-    test_c = F.relu(test_c)
+# ------------------ Normalize & relu ------------------
+acs = parts[0]  # e.g. mpnet_acs
+prefix = f"./{acs}/{dataset.replace('/', '_')}/{backbone}/"
+model_name = cbl_name[3:]
 
-    label = encoded_test_dataset["label"]
+train_mean = torch.load(prefix + "train_mean" + model_name)
+train_std = torch.load(prefix + "train_std" + model_name)
 
-    error_rate = []
+test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
+test_c = F.relu(test_c)
+
+label = test_dataset["label"]
+error_rate = []
+
+for i in range(test_c.T.size(0)):
+    error = total = 0
+    value, s = test_c.T[i].topk(5)
+    for j in range(5):
+        if value[j] > 1.0:
+            total += 1
+            if get_labels(i, dataset) != label[s[j]]:
+                error += 1
+    if total > 0:
+        error_rate.append(error / total)
+
+print(f"[Info] Avg error rate: {sum(error_rate) / len(error_rate):.4f}")
+
+# ------------------ Write activations ------------------
+out_path = prefix + "Concept_activation" + args.cbl_path.split("/")[-1][3:-3] + ".txt"
+os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+with open(out_path, "w", encoding="utf-8") as f:
     for i in range(test_c.T.size(0)):
-        error = 0
-        total = 0
+        f.write(CFG.concept_set[dataset][i] + "\n")
         value, s = test_c.T[i].topk(5)
         for j in range(5):
-            if value[j] > 1.0:
-                total += 1
-                if get_labels(i, dataset) != label[s[j]]:
-                    error += 1
-        if total != 0:
-            error_rate.append(error/total)
-    print("avg error rate:", sum(error_rate) / len(error_rate))
+            if value[j] > 0.0:
+                f.write(test_dataset[text_col][s[j]] + "\n")
+            else:
+                f.write("\n")
+        for j in range(5):
+            f.write(f"{float(value[j]):.4f}\n" if value[j] > 0.0 else "\n")
+        f.write("\n")
 
-
-    with open(prefix + 'Concept_activation' + args.cbl_path.split("/")[-1][3:-3] + '.txt', 'w') as f:
-        for i in range(test_c.T.size(0)):
-            f.write(CFG.concept_set[dataset][i])
-            f.write('\n')
-            value, s = test_c.T[i].topk(5)
-            for j in range(5):
-                if value[j] > 0.0:
-                    f.write(test_dataset[CFG.example_name[dataset]][s[j]])
-                    f.write('\n')
-                else:
-                    f.write('\n')
-            for j in range(5):
-                if value[j] > 0.0:
-                    f.write("{:.4f}".format(float(value[j])))
-                    f.write('\n')
-                else:
-                    f.write('\n')
-            f.write('\n')
+print(f"[Done] Concept activations saved to {out_path}")
