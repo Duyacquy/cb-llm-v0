@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse, os, sys, json
 import torch
 import torch.nn.functional as F
@@ -32,11 +31,11 @@ parts = args.cbl_path.split("/")
 if len(parts) < 4:
     raise ValueError(f"Unexpected cbl_path: {args.cbl_path}")
 
-acs = parts[0]                          # e.g., "mpnet_acs"
-safe_dataset = parts[-3]                # "Duyacquy_Pubmed-20k"
-dataset = safe_dataset.replace("_", "/")# "Duyacquy/Pubmed-20k"
+acs = parts[0]                           # e.g., "mpnet_acs"
+safe_dataset = parts[-3]                 # "Duyacquy_Pubmed-20k"
+dataset = safe_dataset.replace("_", "/") # "Duyacquy/Pubmed-20k"
 
-backbone_dir = parts[-2]                # "bert_cbm"
+backbone_dir = parts[-2]                 # "bert_cbm"
 backbone = backbone_dir.replace("_cbm", "")   # "bert"
 cbl_name = parts[-1]
 
@@ -55,6 +54,7 @@ text_col  = CFG.dataset_config[dataset]["text_column"]
 label_col = CFG.dataset_config[dataset]["label_column"]
 
 # === DEBUG: in thứ tự tên nhãn nếu có ClassLabel
+label_names = None
 try:
     label_names = test_dataset.features[label_col].names
     print(f"[DEBUG] Label names order from dataset: {label_names}")
@@ -190,7 +190,28 @@ tstats(test_c_norm, "test_c (after normalize, pre-ReLU)")
 test_c_relu = F.relu(test_c_norm)
 tstats(test_c_relu, "test_c (after ReLU)")
 
-label = np.array(test_dataset[label_col])
+# ------------------ labels as numpy int64 (fix torch.from_numpy error) ------------------
+raw_label = test_dataset[label_col]
+try:
+    # nếu là tên chuỗi, map về id theo label_names nếu có
+    if len(raw_label) > 0 and isinstance(raw_label[0], str):
+        if label_names is None:
+            raise ValueError("Label column is str but dataset has no ClassLabel names to map.")
+        name2id = {n: i for i, n in enumerate(label_names)}
+        label = np.array([name2id[x] for x in raw_label], dtype=np.int64)
+    else:
+        label = np.array(raw_label, dtype=np.int64)
+except Exception as e:
+    print(f"[ERR][DEBUG] Failed to cast labels to int64: {e}", file=sys.stderr)
+    # fallback: try pandas-like coercion
+    label = np.array(raw_label)
+    # nếu vẫn không phải số, stop sớm
+    if label.dtype.kind not in ("i", "u"):
+        raise
+
+# === DEBUG: in phân bố nhãn
+unique, counts = np.unique(label, return_counts=True)
+print(f"[DEBUG] label distribution: " + ", ".join([f"{int(u)}:{int(c)}" for u, c in zip(unique, counts)]))
 
 # === DEBUG: thống kê ngưỡng >0 và >1 theo từng concept
 above0 = (test_c_relu > 0).sum(dim=0).numpy()
@@ -231,27 +252,51 @@ def avg_or_nan(arr):
 print(f"[Info] Avg error rate (strict >1.0): {avg_or_nan(error_rate_strict):.4f}  (counted concepts: {len(error_rate_strict)})")
 print(f"[Info] Avg error rate (loose  >0.0): {avg_or_nan(error_rate_loose):.4f}  (counted concepts: {len(error_rate_loose)})")
 
-# === DEBUG: phân ly theo label "đúng" của concept i (mean act on samples of that label vs others)
-#  Mục tiêu: nếu CBL học "đúng", mean_pos phải > mean_neg một tỉ lệ lớn.
-y = torch.from_numpy(label)
-separation_hits = 0
-sep_stats = []
-for i in range(test_c_relu.shape[1]):
-    yi = get_labels(i, dataset)
-    pos = test_c_relu[:, i][y == yi]
-    neg = test_c_relu[:, i][y != yi]
-    if pos.numel() > 0 and neg.numel() > 0:
-        sep = float(pos.mean().item() - neg.mean().item())
-        sep_stats.append(sep)
-        if sep > 0:
-            separation_hits += 1
-if len(sep_stats) > 0:
-    print(f"[DEBUG] mean(pos-neg) across concepts: mean={np.mean(sep_stats):.4f}, std={np.std(sep_stats):.4f}")
-    print(f"[DEBUG] fraction of concepts with mean(pos)>mean(neg): {separation_hits/len(sep_stats):.3f}")
-else:
-    print("[DEBUG] Not enough data per label to compute separation.")
+# === DEBUG (MAPPING): xem thứ tự tên nhãn & phân tích majority label cho mỗi concept
+if label_names is not None:
+    print(f"[DEBUG][MAP] Dataset label id -> name order: {list(enumerate(label_names))}")
 
-# === DEBUG (optional): nếu có ACS test thì so cosine giữa test_c và S_ACC_c(test)
+K = 5
+num_concepts = test_c_relu.shape[1]
+num_labels = int(label.max()) + 1
+topk_label_counts = np.zeros((num_concepts, num_labels), dtype=int)
+
+for i in range(num_concepts):
+    vals, idxs = test_c_relu.T[i].topk(K)
+    labs = label[idxs.numpy()]
+    for lb in labs:
+        topk_label_counts[i, lb] += 1
+
+mismatch_all = True
+for i in range(num_concepts):
+    supposed = get_labels(i, dataset)
+    maj_lb = int(topk_label_counts[i].argmax())
+    maj_cnt = int(topk_label_counts[i, maj_lb])
+    print(f"[DEBUG][MAP] concept#{i:02d}  supposed={supposed}  topK-major={maj_lb} (count={maj_cnt}/{K})")
+    if maj_lb == supposed and maj_cnt > 0:
+        mismatch_all = False
+
+if mismatch_all:
+    print("[DEBUG][MAP] WARNING: For ALL concepts, top-K major label != supposed label -> likely label-id permutation or boundaries mismatch.")
+
+supp_L = np.array([get_labels(i, dataset) for i in range(num_concepts)])
+block_counts = np.zeros((num_labels, num_labels), dtype=int)  # rows: supposed, cols: actual-majority
+
+for i in range(num_concepts):
+    supposed = supp_L[i]
+    maj_lb = int(topk_label_counts[i].argmax())
+    block_counts[supposed, maj_lb] += 1
+
+print("[DEBUG][MAP] block_counts (rows = supposed label, cols = actual-majority label):")
+print(block_counts)
+
+suggest_perm = block_counts.argmax(axis=1).tolist()  # supposed->actual
+print(f"[DEBUG][MAP] suggested permutation (supposed_id -> actual_id): {suggest_perm}")
+if label_names is not None and len(label_names) >= len(suggest_perm):
+    print("[DEBUG][MAP] suggested mapping (name): " +
+          ", ".join([f"{label_names[r]} -> {label_names[c]}" for r, c in enumerate(suggest_perm)]))
+
+# ------------------ (Optional) cosine với ACC(ACS_test) nếu có ------------------
 acs_test_path = f"./{acs}/{safe_dataset}/concept_labels_test.npy"
 if os.path.exists(acs_test_path):
     Sc = torch.from_numpy(np.load(acs_test_path)).float()
