@@ -131,14 +131,29 @@ for input_ids, attention_mask in test_loader:
     FL_test_features.append(out.detach().cpu())
 
 test_c = torch.cat(FL_test_features, dim=0)
+acs = parts[0] 
+prefix = f"./{acs}/{dataset.replace('/', '_')}/{backbone_dir}/"
+model_name = cbl_name[3:] 
+
+def try_load(path_list):
+    for p in path_list:
+        if os.path.exists(p):
+            return torch.load(p)
+    return None
+
+train_mean = try_load([prefix + "train_mean" + model_name, prefix + "train_mean.pt"])
+train_std  = try_load([prefix + "train_std"  + model_name, prefix + "train_std.pt"])
+
+if train_mean is None or train_std is None:
+    print("[Warn] train_mean/std not found. Falling back to test-set statistics.")
+    train_mean = torch.mean(test_c, dim=0)
+    train_std  = torch.std(test_c, dim=0) + 1e-6
+
+test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
 test_c = F.relu(test_c)
 print(f"[Info] test_c shape: {test_c.shape}")
 
 # ---------------------- LOAD FINAL LINEAR LAYER ----------------------
-acs = parts[0]
-prefix = f"./{acs}/{dataset.replace('/', '_')}/{backbone_dir}/"
-model_name = cbl_name[3:]
-
 W_g_path = prefix + "W_g"
 b_g_path = prefix + "b_g"
 if args.sparse:
@@ -178,8 +193,12 @@ for i in correct_indices:
             if get_labels(c[j], dataset) != label[i]:
                 error += 1
     if total != 0:
-        error_rate.append(error / total)
-print(f"[Info] Avg error rate: {sum(error_rate)/len(error_rate):.4f}")
+        error_rate.append(error/total)
+
+if len(error_rate) > 0:
+    print(f"[Info] Avg error rate: {sum(error_rate)/len(error_rate):.4f}")
+else:
+    print("[Info] Avg error rate: n/a (no correct predictions)")
 
 # ---------------------- WRITE OUTPUT ----------------------
 out_path = prefix + "Concept_contribution" + W_g_path.split("/")[-1][3:-3] + ".txt"
