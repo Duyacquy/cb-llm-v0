@@ -43,9 +43,15 @@ if __name__ == "__main__":
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args = parser.parse_args()
 
-    acs = args.cbl_path.split("/")[0]
-    dataset = args.cbl_path.split("/")[1] if 'sst2' not in args.cbl_path.split("/")[1] else args.cbl_path.split("/")[1].replace('_', '/')
-    backbone = args.cbl_path.split("/")[2]
+    parts = args.cbl_path.split("/")
+    if len(parts) < 4:
+        raise ValueError(f"Unexpected cbl_path: {args.cbl_path}")
+
+    safe_dataset = parts[-3]                      
+    dataset = safe_dataset.replace("_", "/")     
+
+    backbone_cbm = parts[-2]                 
+    backbone = backbone_cbm.replace("_cbm", "")
     cbl_name = args.cbl_path.split("/")[-1]
     
     print("loading data...")
