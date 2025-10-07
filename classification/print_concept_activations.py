@@ -13,6 +13,7 @@ from datasets import load_dataset
 import config as CFG
 from modules import CBL, RobertaCBL, GPT2CBL, BERTCBL
 from utils import normalize, get_labels, eos_pooling
+from dataset_utils import preprocess
 
 # ------------------ Argument parsing ------------------
 parser = argparse.ArgumentParser()
@@ -46,13 +47,10 @@ print(f"[Info] Dataset: {dataset}, Backbone: {backbone}, Model: {cbl_name}")
 print("[Info] Loading test split...")
 test_dataset = load_dataset(dataset, split="test")
 
-# Determine text column name
-text_col = CFG.dataset_config.get(dataset, {}).get("text_column", None)
-if text_col is None:
-    text_col = "text" if "text" in test_dataset.column_names else test_dataset.column_names[0]
+text_col  = CFG.dataset_config[dataset]["text_column"]
+label_col = CFG.dataset_config[dataset]["label_column"]
 
-print(f"[Info] Using text column: {text_col}")
-
+test_dataset = preprocess(test_dataset, dataset, text_col, label_col)
 test_texts = test_dataset[text_col]
 
 # ------------------ Tokenization ------------------
@@ -67,8 +65,9 @@ elif "bert" in backbone:
 else:
     raise ValueError("Unsupported backbone")
 
+# tokenize dựa trên text_col thay vì hard-code
 enc = tokenizer(
-    test_texts,
+    test_dataset[text_col],
     padding=True,
     truncation=True,
     max_length=args.max_length,
@@ -144,7 +143,7 @@ train_std = torch.load(prefix + "train_std" + model_name)
 test_c, _, _ = normalize(test_c, d=0, mean=train_mean, std=train_std)
 test_c = F.relu(test_c)
 
-label = test_dataset["label"]
+label = np.array(test_dataset[label_col])
 error_rate = []
 
 for i in range(test_c.T.size(0)):
