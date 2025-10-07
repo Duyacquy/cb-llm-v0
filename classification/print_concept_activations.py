@@ -32,9 +32,12 @@ parts = args.cbl_path.split("/")
 if len(parts) < 4:
     raise ValueError(f"Unexpected cbl_path: {args.cbl_path}")
 
-safe_dataset = parts[-3]                 # e.g. Duyacquy_Pubmed-20k
-dataset = safe_dataset.replace("_", "/") # => Duyacquy/Pubmed-20k
-backbone = parts[-2].replace("_cbm", "") # roberta | gpt2 | bert
+acs = parts[0]                          # e.g., "mpnet_acs"
+safe_dataset = parts[-3]                # "Duyacquy_Pubmed-20k"
+dataset = safe_dataset.replace("_", "/")# "Duyacquy/Pubmed-20k"
+
+backbone_dir = parts[-2]                # "bert_cbm" (THƯ MỤC THẬT)
+backbone = backbone_dir.replace("_cbm", "")   # "bert" (LOẠI MODEL)
 cbl_name = parts[-1]
 
 print(f"[Info] Dataset: {dataset}, Backbone: {backbone}, Model: {cbl_name}")
@@ -132,7 +135,7 @@ print(f"[Info] Feature shape: {test_c.shape}")
 
 # ------------------ Normalize & relu ------------------
 acs = parts[0]  # e.g. mpnet_acs
-prefix = f"./{acs}/{dataset.replace('/', '_')}/{backbone}/"
+prefix = f"./{acs}/{dataset.replace('/', '_')}/{backbone_dir}/"
 model_name = cbl_name[3:]
 
 train_mean = torch.load(prefix + "train_mean" + model_name)
