@@ -51,16 +51,16 @@ fi
 # --- Đường dẫn CBL (Step 4) ---
 CBL_DIR="${CONCEPT_DIR}/${SAFE_BACKBONE}_cbm"
 mkdir -p "${CBL_DIR}"
-CBL_PATH="${CBL_DIR}/cbl_no_backbone_acc.pt"
+CBL_PATH="${CBL_DIR}/cbl.pt"
 
 # --- Step 4: Train CBL (+ACC), freeze backbone với --tune_cbl_only ---
 if [[ ! -f "$CBL_PATH" ]]; then
   info "Training CBL (ACC on, tune_cbl_only) for backbone='${BACKBONE}'..."
   python train_CBL.py \
-    --automatic_concept_correction \
+#    --automatic_concept_correction \
     --dataset="${DATASET}" \
     --backbone="${BACKBONE}" \
-    --tune_cbl_only
+#    --tune_cbl_only
 else
   info "CBL model already exists at ${CBL_PATH}. Skipping train_CBL.py."
 fi
