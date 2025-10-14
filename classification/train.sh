@@ -80,14 +80,14 @@ python train_FL.py \
 
 # --- In concept activations & contributions ---
 # Luôn thử gọi (kể cả với BERT); nếu script chưa hỗ trợ backbone, bắt lỗi mềm.
-info "Printing concept activations..."
-if ! python print_concept_activations.py --cbl_path "${CBL_PATH}"; then
-  warn "print_concept_activations failed (script có thể chưa hỗ trợ backbone='${BACKBONE}')."
-fi
+# info "Printing concept activations..."
+# if ! python print_concept_activations.py --cbl_path "${CBL_PATH}"; then
+#   warn "print_concept_activations failed (script có thể chưa hỗ trợ backbone='${BACKBONE}')."
+# fi
 
-info "Printing concept contributions (sparse weights)..."
-if ! python print_concept_contributions.py --cbl_path "${CBL_PATH}" --sparse; then
-  warn "print_concept_contributions failed (script có thể chưa hỗ trợ backbone='${BACKBONE}')."
-fi
+# info "Printing concept contributions (sparse weights)..."
+# if ! python print_concept_contributions.py --cbl_path "${CBL_PATH}" --sparse; then
+#   warn "print_concept_contributions failed (script có thể chưa hỗ trợ backbone='${BACKBONE}')."
+# fi
 
-info "Pipeline completed for dataset='${DATASET}', ACS='${ACS}', backbone='${BACKBONE}'."
+# info "Pipeline completed for dataset='${DATASET}', ACS='${ACS}', backbone='${BACKBONE}'."
